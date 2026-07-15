@@ -1,0 +1,104 @@
+import { useState, useCallback, useRef } from 'react'
+import { Input, List, Typography, Tag, Space, Empty } from 'antd'
+import { FolderOutlined, OrderedListOutlined, FileOutlined, QuestionOutlined } from '@ant-design/icons'
+import { useAppContext } from '../context/AppContext'
+
+export default function SearchPanel(): JSX.Element {
+  const [results, setResults] = useState<SearchResults | null>(null)
+  const [visible, setVisible] = useState(false)
+  const { selectNode } = useAppContext()
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  const handleSearch = useCallback((value: string) => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    if (!value.trim()) {
+      setResults(null)
+      setVisible(false)
+      return
+    }
+    timerRef.current = setTimeout(async () => {
+      const res = await window.api.search.global({ query: value.trim() })
+      setResults(res)
+      setVisible(true)
+    }, 300)
+  }, [])
+
+  const handleSelect = (item: { type: string; id: number; name?: string; folder_id?: number; sheet_id?: number }) => {
+    if (item.type === 'folder') {
+      selectNode({ id: item.id, type: 'folder', name: item.name })
+    } else if (item.type === 'sheet') {
+      selectNode({ id: item.id, type: 'sheet', name: item.name })
+    } else if (item.type === 'part') {
+      selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, partId: item.id })
+    }
+    setVisible(false)
+  }
+
+  const allItems = [
+    ...(results?.folders.map(f => ({ ...f, label: '文件夹', icon: <FolderOutlined /> })) ?? []),
+    ...(results?.sheets.map(s => ({ ...s, label: '题单', icon: <OrderedListOutlined /> })) ?? []),
+    ...(results?.parts.map(p => ({ ...p, label: 'Part', icon: <FileOutlined /> })) ?? []),
+    ...(results?.problems.map(p => ({ ...p, label: '题目', icon: <QuestionOutlined /> })) ?? [])
+  ]
+
+  return (
+    <div style={{ padding: '8px 16px', position: 'relative' }}>
+      <Input.Search
+        placeholder="全局搜索..."
+        onChange={e => handleSearch(e.target.value)}
+        allowClear
+        onFocus={() => { if (results) setVisible(true) }}
+        onBlur={() => setTimeout(() => setVisible(false), 200)}
+      />
+      {visible && allItems.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 16,
+            right: 16,
+            zIndex: 100,
+            background: '#fff',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: 4,
+            maxHeight: 300,
+            overflow: 'auto'
+          }}
+        >
+          <List
+            size="small"
+            dataSource={allItems}
+            renderItem={item => (
+              <List.Item
+                style={{ cursor: 'pointer', padding: '6px 12px' }}
+                onMouseDown={() => handleSelect(item)}
+              >
+                <Space>
+                  {item.icon}
+                  <Typography.Text ellipsis style={{ maxWidth: 180 }}>{item.name}</Typography.Text>
+                  <Tag color="blue" style={{ fontSize: 11, lineHeight: '18px' }}>{item.label}</Tag>
+                </Space>
+              </List.Item>
+            )}
+          />
+        </div>
+      )}
+      {visible && allItems.length === 0 && results && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 16,
+            right: 16,
+            zIndex: 100,
+            background: '#fff',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: 4
+          }}
+        >
+          <Empty description="未找到结果" style={{ margin: '16px 0' }} />
+        </div>
+      )}
+    </div>
+  )
+}
