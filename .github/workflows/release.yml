@@ -2,7 +2,8 @@ name: release
 
 on:
   push:
-    branches: [master]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -31,3 +32,10 @@ jobs:
         with:
           name: TODO列表
           path: release/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.exe
+            release/*.exe.blockmap
+          generate_release_notes: true
