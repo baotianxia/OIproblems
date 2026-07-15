@@ -23,18 +23,20 @@ jobs:
         run: npm run build
 
       - name: Package with electron-builder
-        run: npx electron-builder --win --config
+        run: npx electron-builder --win --config --publish=never --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TODO列表
+          name: release-files
           path: release/
 
       - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             release/*.exe
             release/*.exe.blockmap
