@@ -30,6 +30,8 @@ export default function SearchPanel(): JSX.Element {
       selectNode({ id: item.id, type: 'sheet', name: item.name })
     } else if (item.type === 'part') {
       selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, partId: item.id })
+    } else if (item.type === 'problem') {
+      selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name })
     }
     setVisible(false)
   }

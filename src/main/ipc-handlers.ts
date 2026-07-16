@@ -226,7 +226,7 @@ export function registerIpcHandlers(): void {
     const folders = db.prepare("SELECT id, name, parent_id, 'folder' as type FROM folders WHERE name LIKE ?").all(pattern) as any[]
     const sheets = db.prepare("SELECT s.id, s.name, s.folder_id, 'sheet' as type FROM sheets s WHERE s.name LIKE ?").all(pattern) as any[]
     const parts = db.prepare("SELECT p.id, p.title as name, p.sheet_id, 'part' as type FROM parts p WHERE p.title LIKE ?").all(pattern) as any[]
-    const problems = db.prepare("SELECT p.id, p.name, p.part_id, p.sheet_id, 'problem' as type FROM problems p WHERE p.name LIKE ?").all(pattern) as any[]
+    const problems = db.prepare("SELECT p.id, p.name, p.part_id, COALESCE(p.sheet_id, pt.sheet_id) as sheet_id, 'problem' as type FROM problems p LEFT JOIN parts pt ON p.part_id = pt.id WHERE p.name LIKE ?").all(pattern) as any[]
     return { folders, sheets, parts, problems }
   })
 
