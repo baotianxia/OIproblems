@@ -19,13 +19,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build app
-        run: npm run build
-
-      - name: Package with electron-builder
-        run: npx electron-builder --win --config --publish=never
+      - name: Build & package
+        run: npm run pack
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Zip win-unpacked
+        run: Compress-Archive -Path "release/win-unpacked" -DestinationPath "release/win-unpacked.zip" -Force
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -40,4 +40,5 @@ jobs:
           files: |
             release/*.exe
             release/*.exe.blockmap
+            release/win-unpacked.zip
           generate_release_notes: true
