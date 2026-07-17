@@ -14,7 +14,8 @@
     "appId": "com.example.todolist",
     "productName": "TODO列表",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "out/**/*",
