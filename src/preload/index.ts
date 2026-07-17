@@ -43,7 +43,9 @@ const api = {
     reorder: (params: { items: { id: number; sortOrder: number }[] }) =>
       ipcRenderer.invoke('problem:reorder', params),
     bulkCreate: (params: { names: string[]; partId?: number; sheetId?: number }) =>
-      ipcRenderer.invoke('problem:bulkCreate', params)
+      ipcRenderer.invoke('problem:bulkCreate', params),
+    randomFromContext: (params: { folderId?: number }) =>
+      ipcRenderer.invoke('problem:randomFromContext', params)
   },
   tree: {
     get: () => ipcRenderer.invoke('tree:get')

@@ -26,6 +26,7 @@ interface ApiType {
     toggle(params: { id: number }): Promise<{ success: boolean }>
     reorder(params: { items: { id: number; sortOrder: number }[] }): Promise<{ success: boolean }>
     bulkCreate(params: { names: string[]; partId?: number; sheetId?: number }): Promise<{ success: boolean }>
+    randomFromContext(params: { folderId?: number }): Promise<{ id: number; name: string; part_id: number | null; sheet_id: number } | null>
   }
   tree: {
     get(): Promise<TreeData>

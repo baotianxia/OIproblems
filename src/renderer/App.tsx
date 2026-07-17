@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ConfigProvider, theme, Layout, Typography, Spin, Button, message, Modal, Space, Switch } from 'antd'
-import { FolderAddOutlined, OrderedListOutlined, ImportOutlined, ExportOutlined, SunOutlined, MoonOutlined } from '@ant-design/icons'
+import { FolderAddOutlined, OrderedListOutlined, ImportOutlined, ExportOutlined, SunOutlined, MoonOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { submitOnEnter } from './utils'
 import { AutoFocusInput } from './components/AutoFocusInput'
 import { AppProvider, useAppContext } from './context/AppContext'
@@ -92,16 +92,26 @@ function AppLayout(): JSX.Element {
     })
   }
 
+  const handleRandomProblem = async (folderId?: number) => {
+    const result = await window.api.problem.randomFromContext({ folderId })
+    if (!result) {
+      message.info('没有未完成的题目')
+      return
+    }
+    selectNode({ id: result.sheet_id, type: 'sheet', name: result.name, highlightProblemId: result.id })
+  }
+
   const renderContent = () => {
     if (!selectedNode) {
       return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: token.colorTextQuaternary }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', color: token.colorTextQuaternary, gap: 16 }}>
           <Typography.Text type="secondary">选择一个文件夹或题单开始</Typography.Text>
+          <Button icon={<ThunderboltOutlined />} onClick={() => handleRandomProblem()}>全库随机跳题</Button>
         </div>
       )
     }
     if (selectedNode.type === 'sheet') {
-      return <SheetContent sheetId={selectedNode.id} activePartId={selectedNode.partId} />
+      return <SheetContent sheetId={selectedNode.id} activePartId={selectedNode.partId} highlightProblemId={selectedNode.highlightProblemId} />
     }
     if (selectedNode.type === 'folder') {
       return <FolderContent folderId={selectedNode.id} />

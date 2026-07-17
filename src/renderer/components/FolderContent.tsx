@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Typography, Card, Space, Spin, Empty, Button, Modal, Input, message } from 'antd'
-import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined } from '@ant-design/icons'
+import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { useAppContext } from '../context/AppContext'
 
 interface Props {
@@ -15,6 +15,15 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<GlobalStats | null>(null)
   const { selectNode } = useAppContext()
+
+  const handleRandomProblem = async () => {
+    const result = await window.api.problem.randomFromContext({ folderId })
+    if (!result) {
+      message.info('没有未完成的题目')
+      return
+    }
+    selectNode({ id: result.sheet_id, type: 'sheet', name: result.name, highlightProblemId: result.id })
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -101,7 +110,10 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
         <Typography.Title level={4} style={{ margin: 0 }}>
           <FolderOutlined /> {folderName}
         </Typography.Title>
-        <Button type="text" size="small" icon={<EditOutlined />} onClick={handleEditDescription}>编辑描述</Button>
+        <Space>
+          <Button size="small" icon={<ThunderboltOutlined />} onClick={handleRandomProblem}>随机跳题</Button>
+          <Button type="text" size="small" icon={<EditOutlined />} onClick={handleEditDescription}>编辑描述</Button>
+        </Space>
       </div>
       {renderDescription()}
       {renderStats()}

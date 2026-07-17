@@ -149,6 +149,34 @@ export function registerIpcHandlers(): void {
     return { success: true }
   })
 
+  ipcMain.handle('problem:randomFromContext', (_e, { folderId }: { folderId?: number }) => {
+    if (folderId == null) {
+      const row = db.prepare(`
+        SELECT p.id, p.name, p.part_id, COALESCE(p.sheet_id, pt.sheet_id) AS sheet_id
+        FROM problems p
+        LEFT JOIN parts pt ON p.part_id = pt.id
+        WHERE p.completed = 0
+        ORDER BY RANDOM() LIMIT 1
+      `).get() as { id: number; name: string; part_id: number | null; sheet_id: number } | undefined
+      return row ?? null
+    }
+    const row = db.prepare(`
+      WITH RECURSIVE folder_tree AS (
+        SELECT id FROM folders WHERE id = ?
+        UNION ALL
+        SELECT f.id FROM folders f JOIN folder_tree ft ON f.parent_id = ft.id
+      )
+      SELECT p.id, p.name, p.part_id, COALESCE(p.sheet_id, pt.sheet_id) AS sheet_id
+      FROM problems p
+      LEFT JOIN parts pt ON p.part_id = pt.id
+      WHERE COALESCE(p.sheet_id, pt.sheet_id) IN (
+        SELECT id FROM sheets WHERE folder_id IN (SELECT id FROM folder_tree)
+      ) AND p.completed = 0
+      ORDER BY RANDOM() LIMIT 1
+    `).get(folderId) as { id: number; name: string; part_id: number | null; sheet_id: number } | undefined
+    return row ?? null
+  })
+
   ipcMain.handle('tree:get', () => {
     const folders = db.prepare('SELECT id, name, description, parent_id FROM folders ORDER BY COALESCE(parent_id, 0), sort_order, id').all() as FolderRow[]
     const sheets = db.prepare('SELECT id, name, description, folder_id FROM sheets ORDER BY sort_order, id').all() as SheetRow[]

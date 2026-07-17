@@ -11,9 +11,10 @@ import { useAppContext } from '../context/AppContext'
 interface Props {
   sheetId: number
   activePartId?: number
+  highlightProblemId?: number | null
 }
 
-export default function SheetContent({ sheetId, activePartId }: Props): JSX.Element {
+export default function SheetContent({ sheetId, activePartId, highlightProblemId }: Props): JSX.Element {
   const [data, setData] = useState<SheetDetail | null>(null)
   const [mdVisible, setMdVisible] = useState(false)
   const [highlightedProblemId, setHighlightedProblemId] = useState<number | null>(null)
@@ -28,6 +29,13 @@ export default function SheetContent({ sheetId, activePartId }: Props): JSX.Elem
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useEffect(() => {
+    if (highlightProblemId != null) {
+      setHighlightedProblemId(null)
+      requestAnimationFrame(() => setHighlightedProblemId(highlightProblemId))
+    }
+  }, [highlightProblemId])
 
   useEffect(() => {
     if (data && activePartId && partRefs.current[activePartId]) {
