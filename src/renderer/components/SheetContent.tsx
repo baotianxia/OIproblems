@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Typography, Button, Space, Modal, Input, message, Empty, Spin } from 'antd'
-import { PlusOutlined, ImportOutlined, EditOutlined, CopyOutlined } from '@ant-design/icons'
+import { PlusOutlined, ImportOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { submitOnEnter } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 import ProblemList from './ProblemList'
@@ -16,6 +16,7 @@ interface Props {
 export default function SheetContent({ sheetId, activePartId }: Props): JSX.Element {
   const [data, setData] = useState<SheetDetail | null>(null)
   const [mdVisible, setMdVisible] = useState(false)
+  const [highlightedProblemId, setHighlightedProblemId] = useState<number | null>(null)
   const { refreshTree, selectNode, dataVersion } = useAppContext()
   const partRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
@@ -129,6 +130,29 @@ export default function SheetContent({ sheetId, activePartId }: Props): JSX.Elem
     message.success('描述已复制到剪贴板')
   }
 
+  const handleRandomProblem = () => {
+    if (!data) return
+    const allIncomplete: { id: number; partId?: number }[] = []
+    for (const p of data.directProblems) {
+      if (!p.completed) allIncomplete.push({ id: p.id })
+    }
+    for (const part of data.parts) {
+      for (const p of part.problems) {
+        if (!p.completed) allIncomplete.push({ id: p.id, partId: part.id })
+      }
+    }
+    if (allIncomplete.length === 0) {
+      message.info('没有未完成的题目')
+      return
+    }
+    setHighlightedProblemId(null)
+    const pick = allIncomplete[Math.floor(Math.random() * allIncomplete.length)]
+    if (pick.partId && partRefs.current[pick.partId]) {
+      partRefs.current[pick.partId]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    requestAnimationFrame(() => setHighlightedProblemId(pick.id))
+  }
+
   if (!data) return <Spin style={{ display: 'block', marginTop: 100 }} />
 
   const hasParts = data.parts.length > 0
@@ -163,6 +187,7 @@ export default function SheetContent({ sheetId, activePartId }: Props): JSX.Elem
           )}
         </div>
         <Space>
+          <Button icon={<ThunderboltOutlined />} onClick={handleRandomProblem}>随机跳题</Button>
           <Button icon={<ImportOutlined />} onClick={() => setMdVisible(true)}>导入</Button>
           <Button icon={<PlusOutlined />} onClick={handleAddPart}>新建 Part</Button>
           <Button icon={<PlusOutlined />} onClick={handleAddDirectProblem}>新建题目</Button>
@@ -180,6 +205,8 @@ export default function SheetContent({ sheetId, activePartId }: Props): JSX.Elem
             onAddProblem={() => handleAddPartProblem(part.id)}
             active={part.id === activePartId}
             domRef={el => { partRefs.current[part.id] = el }}
+            highlightedProblemId={highlightedProblemId}
+            onHighlightDone={() => setHighlightedProblemId(null)}
           />
         ))
       ) : null}
@@ -191,7 +218,7 @@ export default function SheetContent({ sheetId, activePartId }: Props): JSX.Elem
       {!hasParts && data.directProblems.length > 0 ? (
         <div>
           <Typography.Text strong style={{ fontSize: 15, display: 'block', marginBottom: 8 }}>题目</Typography.Text>
-          <ProblemList problems={data.directProblems} onRefresh={loadData} />
+          <ProblemList problems={data.directProblems} onRefresh={loadData} highlightedId={highlightedProblemId} onHighlightDone={() => setHighlightedProblemId(null)} />
         </div>
       ) : null}
 

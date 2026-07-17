@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { List, Checkbox, Button, Popconfirm, Input, Modal, message, Space, theme } from 'antd'
 import { DeleteOutlined, EditOutlined, ArrowUpOutlined, ArrowDownOutlined, CopyOutlined } from '@ant-design/icons'
 import { submitOnEnter } from '../utils'
@@ -9,11 +9,27 @@ interface Props {
   problems: ProblemItem[]
   onRefresh: () => void
   showReorder?: boolean
+  highlightedId?: number | null
+  onHighlightDone?: () => void
 }
 
-export default function ProblemList({ problems, onRefresh, showReorder = true }: Props): JSX.Element {
-  const [editingId, setEditingId] = useState<number | null>(null)
+export default function ProblemList({ problems, onRefresh, showReorder = true, highlightedId, onHighlightDone }: Props): JSX.Element {
   const { token } = theme.useToken()
+
+  useEffect(() => {
+    if (highlightedId == null) return
+    const el = document.getElementById(`problem-${highlightedId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.style.transition = 'background-color 0.5s'
+      el.style.backgroundColor = token.colorPrimaryBg
+      const timer = setTimeout(() => {
+        el.style.backgroundColor = ''
+        onHighlightDone?.()
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [highlightedId])
 
   const handleToggle = async (id: number) => {
     await window.api.problem.toggle({ id })
@@ -78,6 +94,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true }:
       dataSource={problems}
       renderItem={(problem, index) => (
         <List.Item
+          id={`problem-${problem.id}`}
           style={{ padding: '8px 16px', background: problem.completed ? token.colorSuccessBg : undefined }}
           actions={[
             showReorder && (
