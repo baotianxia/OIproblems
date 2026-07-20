@@ -49,13 +49,17 @@ export default function SearchPanel(): JSX.Element {
 
   const handleSelect = (item: { type: string; id: number; name?: string; folder_id?: number; sheet_id?: number }) => {
     if (item.type === 'folder') {
-      selectNode({ id: item.id, type: 'folder', name: item.name })
+      selectNode(null)
+      requestAnimationFrame(() => selectNode({ id: item.id, type: 'folder', name: item.name }))
     } else if (item.type === 'sheet') {
-      selectNode({ id: item.id, type: 'sheet', name: item.name })
+      selectNode(null)
+      requestAnimationFrame(() => selectNode({ id: item.id, type: 'sheet', name: item.name }))
     } else if (item.type === 'part') {
-      selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, partId: item.id })
+      selectNode(null)
+      requestAnimationFrame(() => selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, partId: item.id }))
     } else if (item.type === 'problem') {
-      selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, highlightProblemId: item.id })
+      selectNode(null)
+      requestAnimationFrame(() => selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, highlightProblemId: item.id }))
     }
     setVisible(false)
   }

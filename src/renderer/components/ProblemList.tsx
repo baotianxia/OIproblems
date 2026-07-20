@@ -19,15 +19,20 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
   useEffect(() => {
     if (highlightedId == null) return
     const el = document.getElementById(`problem-${highlightedId}`)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      el.style.transition = 'background-color 0.5s'
-      el.style.backgroundColor = token.colorPrimaryBg
-      const timer = setTimeout(() => {
-        el.style.backgroundColor = ''
-        onHighlightDone?.()
-      }, 1500)
-      return () => clearTimeout(timer)
+    if (!el) return
+    const origBg = el.style.background
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.style.transition = 'background-color 0.5s'
+    el.style.backgroundColor = token.colorPrimaryBg
+    const timer = setTimeout(() => {
+      el.style.transition = ''
+      el.style.background = origBg
+      onHighlightDone?.()
+    }, 1500)
+    return () => {
+      clearTimeout(timer)
+      el.style.transition = ''
+      el.style.background = origBg
     }
   }, [highlightedId])
 
