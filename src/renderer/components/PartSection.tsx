@@ -13,9 +13,10 @@ interface Props {
   domRef?: (el: HTMLDivElement | null) => void
   highlightedProblemId?: number | null
   onHighlightDone?: () => void
+  highlightKey?: number
 }
 
-export default function PartSection({ part, onRefresh, onAddProblem, active, domRef, highlightedProblemId, onHighlightDone }: Props): JSX.Element {
+export default function PartSection({ part, onRefresh, onAddProblem, active, domRef, highlightedProblemId, onHighlightDone, highlightKey }: Props): JSX.Element {
   const [collapsed, setCollapsed] = useState(false)
   const rate = part.totalProblems > 0
     ? Math.round((part.completedProblems / part.totalProblems) * 100) : 0
@@ -83,7 +84,7 @@ export default function PartSection({ part, onRefresh, onAddProblem, active, dom
         </div>
       </div>
       {!collapsed && (
-        <ProblemList problems={part.problems} onRefresh={onRefresh} highlightedId={highlightedProblemId} onHighlightDone={onHighlightDone} />
+        <ProblemList problems={part.problems} onRefresh={onRefresh} highlightedId={highlightedProblemId} onHighlightDone={onHighlightDone} highlightKey={highlightKey} />
       )}
     </div>
   )

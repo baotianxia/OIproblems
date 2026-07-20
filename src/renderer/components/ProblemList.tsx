@@ -11,30 +11,22 @@ interface Props {
   showReorder?: boolean
   highlightedId?: number | null
   onHighlightDone?: () => void
+  highlightKey?: number
 }
 
-export default function ProblemList({ problems, onRefresh, showReorder = true, highlightedId, onHighlightDone }: Props): JSX.Element {
+export default function ProblemList({ problems, onRefresh, showReorder = true, highlightedId, onHighlightDone, highlightKey }: Props): JSX.Element {
   const { token } = theme.useToken()
 
   useEffect(() => {
     if (highlightedId == null) return
     const el = document.getElementById(`problem-${highlightedId}`)
     if (!el) return
-    const origBg = el.style.background
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    el.style.transition = 'background-color 0.5s'
-    el.style.backgroundColor = token.colorPrimaryBg
     const timer = setTimeout(() => {
-      el.style.transition = ''
-      el.style.background = origBg
       onHighlightDone?.()
     }, 1500)
-    return () => {
-      clearTimeout(timer)
-      el.style.transition = ''
-      el.style.background = origBg
-    }
-  }, [highlightedId])
+    return () => clearTimeout(timer)
+  }, [highlightedId, highlightKey])
 
   const handleToggle = async (id: number) => {
     await window.api.problem.toggle({ id })
@@ -97,61 +89,68 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
   return (
     <List
       dataSource={problems}
-      renderItem={(problem, index) => (
-        <List.Item
-          id={`problem-${problem.id}`}
-          style={{ padding: '8px 16px', background: problem.completed ? token.colorSuccessBg : undefined }}
-          actions={[
-            showReorder && (
-              <Space key="reorder" size={0}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<ArrowUpOutlined />}
-                  disabled={index === 0}
-                  onClick={() => handleMoveUp(index)}
-                />
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<ArrowDownOutlined />}
-                  disabled={index === problems.length - 1}
-                  onClick={() => handleMoveDown(index)}
-                />
-              </Space>
-            ),
-            <Button
-              key="edit"
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(problem.id)}
-            />,
-            <Button
-              key="copy"
-              type="text"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => handleCopy(problem)}
-            />,
-            <Popconfirm
-              key="delete"
-              title="确认删除此题？"
-              onConfirm={() => handleDelete(problem.id)}
-            >
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          ].filter(Boolean)}
-        >
-          <Checkbox
-            checked={!!problem.completed}
-            onChange={() => handleToggle(problem.id)}
-            style={{ textDecoration: problem.completed ? 'line-through' : 'none', color: problem.completed ? token.colorTextTertiary : undefined }}
+      renderItem={(problem, index) => {
+        const isHighlighted = highlightedId === problem.id
+        return (
+          <List.Item
+            id={`problem-${problem.id}`}
+            style={{
+              padding: '8px 16px',
+              background: isHighlighted ? token.colorPrimaryBg : problem.completed ? token.colorSuccessBg : undefined,
+              transition: 'background-color 0.5s'
+            }}
+            actions={[
+              showReorder && (
+                <Space key="reorder" size={0}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ArrowUpOutlined />}
+                    disabled={index === 0}
+                    onClick={() => handleMoveUp(index)}
+                  />
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ArrowDownOutlined />}
+                    disabled={index === problems.length - 1}
+                    onClick={() => handleMoveDown(index)}
+                  />
+                </Space>
+              ),
+              <Button
+                key="edit"
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(problem.id)}
+              />,
+              <Button
+                key="copy"
+                type="text"
+                size="small"
+                icon={<CopyOutlined />}
+                onClick={() => handleCopy(problem)}
+              />,
+              <Popconfirm
+                key="delete"
+                title="确认删除此题？"
+                onConfirm={() => handleDelete(problem.id)}
+              >
+                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            ].filter(Boolean)}
           >
-            {problem.name}
-          </Checkbox>
-        </List.Item>
-      )}
+            <Checkbox
+              checked={!!problem.completed}
+              onChange={() => handleToggle(problem.id)}
+              style={{ textDecoration: problem.completed ? 'line-through' : 'none', color: problem.completed ? token.colorTextTertiary : undefined }}
+            >
+              {problem.name}
+            </Checkbox>
+          </List.Item>
+        )
+      }}
     />
   )
 }

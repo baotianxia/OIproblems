@@ -3,6 +3,9 @@ import { Input, List, Typography, Tag, Space, Empty, theme } from 'antd'
 import { FolderOutlined, OrderedListOutlined, FileOutlined, QuestionOutlined } from '@ant-design/icons'
 import { useAppContext } from '../context/AppContext'
 
+let _highlightKey = 0
+function nextKey(): number { return ++_highlightKey }
+
 function HighlightText({ text, query }: { text: string; query: string }): JSX.Element {
   const { isDark } = useAppContext()
   if (!query.trim()) return <>{text}</>
@@ -48,18 +51,15 @@ export default function SearchPanel(): JSX.Element {
   }, [])
 
   const handleSelect = (item: { type: string; id: number; name?: string; folder_id?: number; sheet_id?: number }) => {
+    const key = nextKey()
     if (item.type === 'folder') {
-      selectNode(null)
-      requestAnimationFrame(() => selectNode({ id: item.id, type: 'folder', name: item.name }))
+      selectNode({ id: item.id, type: 'folder', name: item.name })
     } else if (item.type === 'sheet') {
-      selectNode(null)
-      requestAnimationFrame(() => selectNode({ id: item.id, type: 'sheet', name: item.name }))
+      selectNode({ id: item.id, type: 'sheet', name: item.name })
     } else if (item.type === 'part') {
-      selectNode(null)
-      requestAnimationFrame(() => selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, partId: item.id }))
+      selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, partId: item.id, highlightKey: key })
     } else if (item.type === 'problem') {
-      selectNode(null)
-      requestAnimationFrame(() => selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, highlightProblemId: item.id }))
+      selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, highlightProblemId: item.id, highlightKey: key })
     }
     setVisible(false)
   }

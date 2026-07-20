@@ -12,9 +12,10 @@ interface Props {
   sheetId: number
   activePartId?: number
   highlightProblemId?: number | null
+  highlightKey?: number
 }
 
-export default function SheetContent({ sheetId, activePartId, highlightProblemId }: Props): JSX.Element {
+export default function SheetContent({ sheetId, activePartId, highlightProblemId, highlightKey }: Props): JSX.Element {
   const [data, setData] = useState<SheetDetail | null>(null)
   const [mdVisible, setMdVisible] = useState(false)
   const [highlightedProblemId, setHighlightedProblemId] = useState<number | null>(null)
@@ -32,10 +33,9 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
 
   useEffect(() => {
     if (highlightProblemId != null) {
-      setHighlightedProblemId(null)
-      requestAnimationFrame(() => setHighlightedProblemId(highlightProblemId))
+      setHighlightedProblemId(highlightProblemId)
     }
-  }, [highlightProblemId])
+  }, [highlightProblemId, highlightKey])
 
   useEffect(() => {
     if (data && activePartId && partRefs.current[activePartId]) {
@@ -215,6 +215,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
             domRef={el => { partRefs.current[part.id] = el }}
             highlightedProblemId={highlightedProblemId}
             onHighlightDone={() => setHighlightedProblemId(null)}
+            highlightKey={highlightKey}
           />
         ))
       ) : null}
@@ -226,7 +227,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
       {!hasParts && data.directProblems.length > 0 ? (
         <div>
           <Typography.Text strong style={{ fontSize: 15, display: 'block', marginBottom: 8 }}>题目</Typography.Text>
-          <ProblemList problems={data.directProblems} onRefresh={loadData} highlightedId={highlightedProblemId} onHighlightDone={() => setHighlightedProblemId(null)} />
+          <ProblemList problems={data.directProblems} onRefresh={loadData} highlightedId={highlightedProblemId} onHighlightDone={() => setHighlightedProblemId(null)} highlightKey={highlightKey} />
         </div>
       ) : null}
 

@@ -111,7 +111,7 @@ function AppLayout(): JSX.Element {
       )
     }
     if (selectedNode.type === 'sheet') {
-      return <SheetContent sheetId={selectedNode.id} activePartId={selectedNode.partId} highlightProblemId={selectedNode.highlightProblemId} />
+      return <SheetContent sheetId={selectedNode.id} activePartId={selectedNode.partId} highlightProblemId={selectedNode.highlightProblemId} highlightKey={selectedNode.highlightKey} />
     }
     if (selectedNode.type === 'folder') {
       return <FolderContent folderId={selectedNode.id} />

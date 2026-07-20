@@ -16,4 +16,5 @@ export interface SelectedNode {
   name?: string
   partId?: number
   highlightProblemId?: number
+  highlightKey?: number
 }
