@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef } from 'react'
-import { Input, List, Typography, Tag, Space, Empty } from 'antd'
+import { Input, List, Typography, Tag, Space, Empty, theme } from 'antd'
 import { FolderOutlined, OrderedListOutlined, FileOutlined, QuestionOutlined } from '@ant-design/icons'
 import { useAppContext } from '../context/AppContext'
 
 export default function SearchPanel(): JSX.Element {
+  const { token } = theme.useToken()
   const [results, setResults] = useState<SearchResults | null>(null)
   const [visible, setVisible] = useState(false)
   const { selectNode } = useAppContext()
@@ -60,9 +61,9 @@ export default function SearchPanel(): JSX.Element {
             left: 16,
             right: 16,
             zIndex: 100,
-            background: '#fff',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            borderRadius: 4,
+            background: token.colorBgElevated,
+            boxShadow: token.boxShadowSecondary,
+            borderRadius: token.borderRadiusLG,
             maxHeight: 300,
             overflow: 'auto'
           }}
@@ -93,9 +94,9 @@ export default function SearchPanel(): JSX.Element {
             left: 16,
             right: 16,
             zIndex: 100,
-            background: '#fff',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            borderRadius: 4
+            background: token.colorBgElevated,
+            boxShadow: token.boxShadowSecondary,
+            borderRadius: token.borderRadiusLG
           }}
         >
           <Empty description="未找到结果" style={{ margin: '16px 0' }} />
