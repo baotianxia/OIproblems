@@ -1,17 +1,32 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, Fragment } from 'react'
 import { Input, List, Typography, Tag, Space, Empty, theme } from 'antd'
 import { FolderOutlined, OrderedListOutlined, FileOutlined, QuestionOutlined } from '@ant-design/icons'
 import { useAppContext } from '../context/AppContext'
+
+function HighlightText({ text, query }: { text: string; query: string }): JSX.Element {
+  if (!query.trim()) return <>{text}</>
+  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span style={{ background: '#ffd666', borderRadius: 2, padding: '0 2px' }}>{text.slice(idx, idx + query.length)}</span>
+      {text.slice(idx + query.length)}
+    </>
+  )
+}
 
 export default function SearchPanel(): JSX.Element {
   const { token } = theme.useToken()
   const [results, setResults] = useState<SearchResults | null>(null)
   const [visible, setVisible] = useState(false)
+  const [query, setQuery] = useState('')
   const { selectNode } = useAppContext()
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
   const handleSearch = useCallback((value: string) => {
     if (timerRef.current) clearTimeout(timerRef.current)
+    setQuery(value)
     if (!value.trim()) {
       setResults(null)
       setVisible(false)
@@ -78,7 +93,9 @@ export default function SearchPanel(): JSX.Element {
               >
                 <Space>
                   {item.icon}
-                  <Typography.Text ellipsis style={{ maxWidth: 180 }}>{item.name}</Typography.Text>
+                  <Typography.Text ellipsis style={{ maxWidth: 180 }}>
+                    <HighlightText text={item.name ?? ''} query={query} />
+                  </Typography.Text>
                   <Tag color="blue" style={{ fontSize: 11, lineHeight: '18px' }}>{item.label}</Tag>
                 </Space>
               </List.Item>
