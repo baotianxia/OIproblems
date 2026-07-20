@@ -4,13 +4,16 @@ import { FolderOutlined, OrderedListOutlined, FileOutlined, QuestionOutlined } f
 import { useAppContext } from '../context/AppContext'
 
 function HighlightText({ text, query }: { text: string; query: string }): JSX.Element {
+  const { token } = theme.useToken()
   if (!query.trim()) return <>{text}</>
   const idx = text.toLowerCase().indexOf(query.toLowerCase())
   if (idx === -1) return <>{text}</>
   return (
     <>
       {text.slice(0, idx)}
-      <span style={{ background: '#ffd666', borderRadius: 2, padding: '0 2px' }}>{text.slice(idx, idx + query.length)}</span>
+      <span style={{ background: token.colorWarningBg, borderRadius: 2, padding: '0 2px' }}>
+        {text.slice(idx, idx + query.length)}
+      </span>
       {text.slice(idx + query.length)}
     </>
   )

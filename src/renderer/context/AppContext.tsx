@@ -26,7 +26,7 @@ export function AppProvider({ children }: { children: ReactNode }): JSX.Element 
   useEffect(() => {
     window.api.ui.get('theme').then(val => {
       if (val === 'dark') setIsDark(true)
-    })
+    }).catch(() => {})
   }, [])
 
   const selectNode = useCallback((node: SelectedNode | null) => {
@@ -44,10 +44,13 @@ export function AppProvider({ children }: { children: ReactNode }): JSX.Element 
   const toggleTheme = useCallback(() => {
     setIsDark(prev => {
       const next = !prev
-      window.api.ui.set('theme', next ? 'dark' : 'light')
       return next
     })
   }, [])
+
+  useEffect(() => {
+    window.api.ui.set('theme', isDark ? 'dark' : 'light').catch(() => {})
+  }, [isDark])
 
   return (
     <AppContext.Provider value={{ selectedNode, treeVersion, dataVersion, isDark, selectNode, refreshTree, bumpDataVersion, toggleTheme }}>
