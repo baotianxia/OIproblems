@@ -15,10 +15,10 @@ function HighlightText({ text, query }: { text: string; query: string }): JSX.El
     <>
       {text.slice(0, idx)}
       <span style={{
-        background: isDark ? '#efdb50' : '#fadb14',
+        background: isDark ? '#b8860b' : '#fadb14',
         borderRadius: 2,
         padding: '0 2px',
-        color: '#000'
+        color: isDark ? '#fff' : '#000'
       }}>
         {text.slice(idx, idx + query.length)}
       </span>

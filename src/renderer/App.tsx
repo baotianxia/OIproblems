@@ -188,6 +188,18 @@ function AppLayout(): JSX.Element {
 
 function AppThemeWrapper(): JSX.Element {
   const { isDark } = useAppContext()
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (isDark) {
+      root.style.setProperty('--scrollbar-thumb', 'rgba(255,255,255,0.25)')
+      root.style.setProperty('--scrollbar-thumb-hover', 'rgba(255,255,255,0.4)')
+    } else {
+      root.style.setProperty('--scrollbar-thumb', 'rgba(0,0,0,0.15)')
+      root.style.setProperty('--scrollbar-thumb-hover', 'rgba(0,0,0,0.3)')
+    }
+  }, [isDark])
+
   return (
     <ConfigProvider theme={{ algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
       <AppLayout />

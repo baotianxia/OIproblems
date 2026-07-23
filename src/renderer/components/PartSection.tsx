@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Typography, Button, Input, Modal, message, Popconfirm } from 'antd'
+import { Typography, Button, Input, Modal, message, Popconfirm, theme } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { submitOnEnter } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export default function PartSection({ part, onRefresh, onAddProblem, active, domRef, highlightedProblemId, onHighlightDone, highlightKey }: Props): JSX.Element {
+  const { token } = theme.useToken()
   const [collapsed, setCollapsed] = useState(false)
   const rate = part.totalProblems > 0
     ? Math.round((part.completedProblems / part.totalProblems) * 100) : 0
@@ -54,10 +55,10 @@ export default function PartSection({ part, onRefresh, onAddProblem, active, dom
       id={`part-${part.id}`}
       style={{
         marginBottom: 16,
-        border: `1px solid ${active ? '#1890ff' : '#f0f0f0'}`,
+        border: `1px solid ${active ? token.colorPrimary : token.colorBorderSecondary}`,
         borderRadius: 8,
         padding: 12,
-        background: active ? '#e6f7ff' : undefined,
+        background: active ? token.colorPrimaryBg : undefined,
         transition: 'border-color 0.3s, background 0.3s'
       }}
     >
