@@ -47,6 +47,22 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     }
   }, [data, activePartId, sheetId, selectNode])
 
+  useEffect(() => {
+    const el = document.getElementById('scroll-container')
+    if (!el) return
+    el.scrollTo(0, 0)
+    window.api.ui.get(`scrollPos_sheet_${sheetId}`).then(saved => {
+      if (!saved) return
+      const pos = parseInt(saved, 10)
+      if (!isNaN(pos) && pos > 0) {
+        requestAnimationFrame(() => el.scrollTo({ top: pos, behavior: 'smooth' }))
+      }
+    })
+    return () => {
+      window.api.ui.set(`scrollPos_sheet_${sheetId}`, String(el.scrollTop))
+    }
+  }, [sheetId])
+
   const handleAddPart = () => {
     let title = ''
     Modal.confirm({

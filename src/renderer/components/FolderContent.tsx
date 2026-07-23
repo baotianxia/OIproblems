@@ -52,6 +52,22 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     loadData()
   }, [loadData])
 
+  useEffect(() => {
+    const el = document.getElementById('scroll-container')
+    if (!el) return
+    el.scrollTo(0, 0)
+    window.api.ui.get(`scrollPos_folder_${folderId}`).then(saved => {
+      if (!saved) return
+      const pos = parseInt(saved, 10)
+      if (!isNaN(pos) && pos > 0) {
+        requestAnimationFrame(() => el.scrollTo({ top: pos, behavior: 'smooth' }))
+      }
+    })
+    return () => {
+      window.api.ui.set(`scrollPos_folder_${folderId}`, String(el.scrollTop))
+    }
+  }, [folderId])
+
   const handleEditDescription = () => {
     let val = description
     Modal.confirm({

@@ -183,7 +183,7 @@ function AppLayout(): JSX.Element {
         </div>
       </Sider>
       <Layout style={{ minHeight: 0, background: token.colorBgContainer }}>
-        <Content style={{ padding: '24px', overflow: 'auto', background: token.colorBgContainer, minHeight: 0 }}>
+        <Content id="scroll-container" style={{ padding: '24px', overflow: 'auto', background: token.colorBgContainer, minHeight: 0, scrollBehavior: 'auto' }}>
           {renderContent()}
         </Content>
       </Layout>
