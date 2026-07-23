@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
+import { scrollPosCache } from '../scrollCache'
 import { Typography, Button, Space, Modal, Input, message, Empty, Spin } from 'antd'
 import { PlusOutlined, ImportOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { submitOnEnter } from '../utils'
@@ -53,13 +54,22 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     if (!el) return
     const onScroll = () => { scrollPosRef.current = el.scrollTop }
     el.addEventListener('scroll', onScroll)
-    window.api.ui.get(`scrollPos_sheet_${sheetId}`).then(saved => {
-      const pos = saved ? parseInt(saved, 10) : NaN
-      el.scrollTop = !isNaN(pos) && pos > 0 ? pos : 0
-    })
+    const key = `scrollPos_sheet_${sheetId}`
+    const cached = getScrollPos(key)
+    if (cached !== undefined) {
+      el.scrollTop = cached
+    } else {
+      window.api.ui.get(key).then(saved => {
+        const pos = saved ? parseInt(saved, 10) : 0
+        setScrollPos(key, pos)
+        el.scrollTop = pos > 0 ? pos : 0
+      })
+    }
     return () => {
       el.removeEventListener('scroll', onScroll)
-      window.api.ui.set(`scrollPos_sheet_${sheetId}`, String(scrollPosRef.current))
+      const finalPos = scrollPosRef.current
+      setScrollPos(key, finalPos)
+      window.api.ui.set(key, String(finalPos))
     }
   }, [sheetId])
 

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
+import { getScrollPos, setScrollPos } from './scrollCache'
 import { Typography, Card, Space, Spin, Empty, Button, Modal, Input, message } from 'antd'
 import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { useAppContext } from '../context/AppContext'
@@ -58,13 +59,22 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     if (!el) return
     const onScroll = () => { scrollPosRef.current = el.scrollTop }
     el.addEventListener('scroll', onScroll)
-    window.api.ui.get(`scrollPos_folder_${folderId}`).then(saved => {
-      const pos = saved ? parseInt(saved, 10) : NaN
-      el.scrollTop = !isNaN(pos) && pos > 0 ? pos : 0
-    })
+    const key = `scrollPos_folder_${folderId}`
+    const cached = getScrollPos(key)
+    if (cached !== undefined) {
+      el.scrollTop = cached
+    } else {
+      window.api.ui.get(key).then(saved => {
+        const pos = saved ? parseInt(saved, 10) : 0
+        setScrollPos(key, pos)
+        el.scrollTop = pos > 0 ? pos : 0
+      })
+    }
     return () => {
       el.removeEventListener('scroll', onScroll)
-      window.api.ui.set(`scrollPos_folder_${folderId}`, String(scrollPosRef.current))
+      const finalPos = scrollPosRef.current
+      setScrollPos(key, finalPos)
+      window.api.ui.set(key, String(finalPos))
     }
   }, [folderId])
 
