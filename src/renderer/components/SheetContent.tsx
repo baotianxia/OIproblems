@@ -54,24 +54,34 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     if (!el) return
     const onScroll = () => { scrollPosRef.current = el.scrollTop }
     el.addEventListener('scroll', onScroll)
-    const key = `scrollPos_sheet_${sheetId}`
-    const cached = getScrollPos(key)
-    if (cached !== undefined) {
-      el.scrollTop = cached
-    } else {
-      window.api.ui.get(key).then(saved => {
-        const pos = saved ? parseInt(saved, 10) : 0
-        setScrollPos(key, pos)
-        el.scrollTop = pos > 0 ? pos : 0
-      })
-    }
     return () => {
       el.removeEventListener('scroll', onScroll)
+      const key = `scrollPos_sheet_${sheetId}`
       const finalPos = scrollPosRef.current
       setScrollPos(key, finalPos)
       window.api.ui.set(key, String(finalPos))
     }
   }, [sheetId])
+
+  const scrollRestored = useRef(false)
+  useEffect(() => { scrollRestored.current = false }, [sheetId])
+  useLayoutEffect(() => {
+    if (!data || scrollRestored.current) return
+    scrollRestored.current = true
+    const el = document.getElementById('scroll-container')
+    if (!el) return
+    const key = `scrollPos_sheet_${sheetId}`
+    const cached = getScrollPos(key)
+    if (cached !== undefined && cached > 0) {
+      el.scrollTop = cached
+    } else {
+      window.api.ui.get(key).then(saved => {
+        const pos = saved ? parseInt(saved, 10) : 0
+        setScrollPos(key, pos)
+        if (pos > 0) el.scrollTop = pos
+      })
+    }
+  }, [data, sheetId])
 
   const handleAddPart = () => {
     let title = ''
