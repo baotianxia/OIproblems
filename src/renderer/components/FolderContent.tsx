@@ -59,24 +59,34 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     if (!el) return
     const onScroll = () => { scrollPosRef.current = el.scrollTop }
     el.addEventListener('scroll', onScroll)
-    const key = `scrollPos_folder_${folderId}`
-    const cached = getScrollPos(key)
-    if (cached !== undefined) {
-      el.scrollTop = cached
-    } else {
-      window.api.ui.get(key).then(saved => {
-        const pos = saved ? parseInt(saved, 10) : 0
-        setScrollPos(key, pos)
-        el.scrollTop = pos > 0 ? pos : 0
-      })
-    }
     return () => {
       el.removeEventListener('scroll', onScroll)
+      const key = `scrollPos_folder_${folderId}`
       const finalPos = scrollPosRef.current
       setScrollPos(key, finalPos)
       window.api.ui.set(key, String(finalPos))
     }
   }, [folderId])
+
+  const scrollRestored = useRef(false)
+  useEffect(() => { scrollRestored.current = false }, [folderId])
+  useLayoutEffect(() => {
+    if (loading || !folderName || scrollRestored.current) return
+    scrollRestored.current = true
+    const el = document.getElementById('scroll-container')
+    if (!el) return
+    const key = `scrollPos_folder_${folderId}`
+    const cached = getScrollPos(key)
+    if (cached !== undefined && cached > 0) {
+      el.scrollTop = cached
+    } else {
+      window.api.ui.get(key).then(saved => {
+        const pos = saved ? parseInt(saved, 10) : 0
+        setScrollPos(key, pos)
+        if (pos > 0) el.scrollTop = pos
+      })
+    }
+  }, [loading, folderName, folderId])
 
   const handleEditDescription = () => {
     let val = description
