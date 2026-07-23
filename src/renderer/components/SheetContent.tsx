@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
-import { scrollPosCache } from '../scrollCache'
+import { getScrollPos, setScrollPos } from './scrollCache'
 import { Typography, Button, Space, Modal, Input, message, Empty, Spin } from 'antd'
 import { PlusOutlined, ImportOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { submitOnEnter } from '../utils'
