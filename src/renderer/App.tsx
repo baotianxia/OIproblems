@@ -36,6 +36,19 @@ function AppLayout(): JSX.Element {
     loadGlobalStats()
   }, [loadGlobalStats, treeVersion])
 
+  useEffect(() => {
+    const root = document.documentElement
+    if (isDark) {
+      root.style.setProperty('--scrollbar-track', '#1f1f1f')
+      root.style.setProperty('--scrollbar-thumb', '#555')
+      root.style.setProperty('--scrollbar-thumb-hover', '#777')
+    } else {
+      root.style.setProperty('--scrollbar-track', '#f1f1f1')
+      root.style.setProperty('--scrollbar-thumb', '#c1c1c1')
+      root.style.setProperty('--scrollbar-thumb-hover', '#a1a1a1')
+    }
+  }, [isDark])
+
   const handleExport = async () => {
     const result = await window.api.markdown.export()
     if (result.success) {
@@ -188,18 +201,6 @@ function AppLayout(): JSX.Element {
 
 function AppThemeWrapper(): JSX.Element {
   const { isDark } = useAppContext()
-
-  useEffect(() => {
-    const root = document.documentElement
-    if (isDark) {
-      root.style.setProperty('--scrollbar-thumb', 'rgba(255,255,255,0.25)')
-      root.style.setProperty('--scrollbar-thumb-hover', 'rgba(255,255,255,0.4)')
-    } else {
-      root.style.setProperty('--scrollbar-thumb', 'rgba(0,0,0,0.15)')
-      root.style.setProperty('--scrollbar-thumb-hover', 'rgba(0,0,0,0.3)')
-    }
-  }, [isDark])
-
   return (
     <ConfigProvider theme={{ algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
       <AppLayout />
