@@ -53,13 +53,9 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     if (!el) return
     const onScroll = () => { scrollPosRef.current = el.scrollTop }
     el.addEventListener('scroll', onScroll)
-    el.scrollTo(0, 0)
     window.api.ui.get(`scrollPos_sheet_${sheetId}`).then(saved => {
-      if (!saved) return
-      const pos = parseInt(saved, 10)
-      if (!isNaN(pos) && pos > 0) {
-        el.scrollTo({ top: pos, behavior: 'smooth' })
-      }
+      const pos = saved ? parseInt(saved, 10) : NaN
+      el.scrollTop = !isNaN(pos) && pos > 0 ? pos : 0
     })
     return () => {
       el.removeEventListener('scroll', onScroll)
