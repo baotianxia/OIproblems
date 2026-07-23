@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { Typography, Button, Space, Modal, Input, message, Empty, Spin } from 'antd'
 import { PlusOutlined, ImportOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { submitOnEnter } from '../utils'
@@ -47,19 +47,23 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     }
   }, [data, activePartId, sheetId, selectNode])
 
-  useEffect(() => {
+  const scrollPosRef = useRef(0)
+  useLayoutEffect(() => {
     const el = document.getElementById('scroll-container')
     if (!el) return
+    const onScroll = () => { scrollPosRef.current = el.scrollTop }
+    el.addEventListener('scroll', onScroll)
     el.scrollTo(0, 0)
     window.api.ui.get(`scrollPos_sheet_${sheetId}`).then(saved => {
       if (!saved) return
       const pos = parseInt(saved, 10)
       if (!isNaN(pos) && pos > 0) {
-        requestAnimationFrame(() => el.scrollTo({ top: pos, behavior: 'smooth' }))
+        el.scrollTo({ top: pos, behavior: 'smooth' })
       }
     })
     return () => {
-      window.api.ui.set(`scrollPos_sheet_${sheetId}`, String(el.scrollTop))
+      el.removeEventListener('scroll', onScroll)
+      window.api.ui.set(`scrollPos_sheet_${sheetId}`, String(scrollPosRef.current))
     }
   }, [sheetId])
 

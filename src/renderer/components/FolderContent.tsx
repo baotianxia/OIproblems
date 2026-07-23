@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { Typography, Card, Space, Spin, Empty, Button, Modal, Input, message } from 'antd'
 import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { useAppContext } from '../context/AppContext'
@@ -52,19 +52,23 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     loadData()
   }, [loadData])
 
-  useEffect(() => {
+  const scrollPosRef = useRef(0)
+  useLayoutEffect(() => {
     const el = document.getElementById('scroll-container')
     if (!el) return
+    const onScroll = () => { scrollPosRef.current = el.scrollTop }
+    el.addEventListener('scroll', onScroll)
     el.scrollTo(0, 0)
     window.api.ui.get(`scrollPos_folder_${folderId}`).then(saved => {
       if (!saved) return
       const pos = parseInt(saved, 10)
       if (!isNaN(pos) && pos > 0) {
-        requestAnimationFrame(() => el.scrollTo({ top: pos, behavior: 'smooth' }))
+        el.scrollTo({ top: pos, behavior: 'smooth' })
       }
     })
     return () => {
-      window.api.ui.set(`scrollPos_folder_${folderId}`, String(el.scrollTop))
+      el.removeEventListener('scroll', onScroll)
+      window.api.ui.set(`scrollPos_folder_${folderId}`, String(scrollPosRef.current))
     }
   }, [folderId])
 
