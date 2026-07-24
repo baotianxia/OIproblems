@@ -96,7 +96,10 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
   const extractId = (name: string): string | null => {
     const trimmed = name.replace(/[\s\u200B-\u200D\uFEFF]+$/, '')
     const match = trimmed.match(/\(([^)]*)\)$/)
-    return match ? match[1] : null
+    if (!match) return null
+    const inner = match[1]
+    const linkMatch = inner.match(/\[([^\]]*)\]\(([^)]+)\)/)
+    return linkMatch ? linkMatch[2] : inner
   }
 
   return (
@@ -136,7 +139,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
                   </Tooltip>
                 </Space>
               ),
-              <Tooltip key="copy-id" title={idContent || '无题号'}>
+              <Tooltip key="copy-id" title={idContent ? '复制题号' : '无题号'}>
                 <Button
                   type="text"
                   size="small"
