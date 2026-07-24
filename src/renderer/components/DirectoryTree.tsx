@@ -241,6 +241,14 @@ export default function DirectoryTreeComponent(): JSX.Element {
     return null
   }
 
+  const nodeInSubtree = (nodes: TreeNode[], targetKey: string): boolean => {
+    for (const n of nodes) {
+      if (n.key === targetKey) return true
+      if (n.children && nodeInSubtree(n.children, targetKey)) return true
+    }
+    return false
+  }
+
   const deleteItem = () => {
     const node = contextNodeRef.current
     if (!node) return
@@ -263,12 +271,14 @@ export default function DirectoryTreeComponent(): JSX.Element {
           } else if (node.type === 'part') {
             await window.api.part.delete({ id: node.id })
           }
-          // Navigate to nearest ancestor if the deleted item is the current selection
+          // Navigate to nearest ancestor if the deleted item affects current selection
           if (selectedNode) {
+            const selectedKey = `${selectedNode.type}-${selectedNode.id}`
             if (node.type === 'part' && selectedNode.type === 'sheet' && selectedNode.partId === node.id) {
               const sheetNode = findInTree(treeNodes, node.sheet_id!, 'sheet')
               selectNode({ id: node.sheet_id!, type: 'sheet', name: sheetNode?.title as string || '' })
             } else if (selectedNode.type === node.type && selectedNode.id === node.id) {
+              // Direct match: navigate to parent
               if (node.type === 'folder') {
                 const parentId = node.parent_id
                 if (parentId != null) {
@@ -282,6 +292,18 @@ export default function DirectoryTreeComponent(): JSX.Element {
                 if (folderId != null) {
                   const parent = findInTree(treeNodes, folderId, 'folder')
                   selectNode({ id: folderId, type: 'folder', name: parent?.title as string || '' })
+                } else {
+                  selectNode(null)
+                }
+              }
+            } else if (node.type === 'folder') {
+              // Check if deleted folder is ancestor of selected node
+              const delNode = findInTree(treeNodes, node.id, 'folder')
+              if (delNode?.children && nodeInSubtree(delNode.children, selectedKey)) {
+                const parentId = node.parent_id
+                if (parentId != null) {
+                  const parent = findInTree(treeNodes, parentId, 'folder')
+                  selectNode({ id: parentId, type: 'folder', name: parent?.title as string || '' })
                 } else {
                   selectNode(null)
                 }
