@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { List, Checkbox, Button, Popconfirm, Input, Modal, message, Space, theme } from 'antd'
-import { DeleteOutlined, EditOutlined, ArrowUpOutlined, ArrowDownOutlined, CopyOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, ArrowUpOutlined, ArrowDownOutlined, CopyOutlined, LinkOutlined } from '@ant-design/icons'
 import { submitOnEnter, renderMarkdown } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 import { useAppContext } from '../context/AppContext'
@@ -93,11 +93,18 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
     message.success('已复制到剪贴板')
   }
 
+  const extractId = (name: string): string | null => {
+    const trimmed = name.replace(/[\s\u200B-\u200D\uFEFF]+$/, '')
+    const match = trimmed.match(/\(([^)]*)\)$/)
+    return match ? match[1] : null
+  }
+
   return (
     <List
       dataSource={problems}
       renderItem={(problem, index) => {
         const isHighlighted = highlightedId === problem.id
+        const idContent = extractId(problem.name)
         return (
           <List.Item
             id={`problem-${problem.id}`}
@@ -125,6 +132,20 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
                   />
                 </Space>
               ),
+              <Button
+                key="copy-id"
+                type="text"
+                size="small"
+                icon={<LinkOutlined />}
+                disabled={!idContent}
+                style={{ opacity: idContent ? 1 : 0.25, color: idContent ? undefined : token.colorTextQuaternary }}
+                onClick={() => {
+                  if (idContent) {
+                    navigator.clipboard.writeText(idContent)
+                    message.success('已复制')
+                  }
+                }}
+              />,
               <Button
                 key="edit"
                 type="text"
