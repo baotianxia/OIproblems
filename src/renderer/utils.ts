@@ -10,7 +10,7 @@ export function submitOnEnter(e: { key: string }): void {
 const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
 
 export function renderMarkdown(text: string, isDark?: boolean): ReactNode {
-  const linkColor = isDark ? '#64B5F6' : '#1E88E5'
+  const linkColor = isDark ? '#64B5F6' : '#1565C0'
   const parts: ReactNode[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null = null
