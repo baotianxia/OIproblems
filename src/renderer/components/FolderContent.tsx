@@ -144,7 +144,6 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
       cancelText: '取消',
       onOk: async () => {
         await window.api.folder.delete({ id })
-        selectNode(null)
         await refreshTree()
         message.success('已删除')
       }
@@ -178,7 +177,6 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
       cancelText: '取消',
       onOk: async () => {
         await window.api.sheet.delete({ id })
-        selectNode(null)
         await refreshTree()
         message.success('已删除')
       }

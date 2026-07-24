@@ -77,7 +77,7 @@ export default function DirectoryTreeComponent(): JSX.Element {
   const { selectNode, treeVersion, refreshTree, selectedNode } = useAppContext()
   const [treeNodes, setTreeNodes] = useState<TreeNode[]>([])
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([])
-  const contextNodeRef = useRef<{ key: string; type: string; id: number } | null>(null)
+  const contextNodeRef = useRef<{ key: string; type: string; id: number; parent_id?: number | null; folder_id?: number; sheet_id?: number } | null>(null)
   const [, forceUpdate] = useState(0)
   const expandedLoaded = useRef(false)
 
@@ -137,7 +137,7 @@ export default function DirectoryTreeComponent(): JSX.Element {
   const handleRightClick = (info: { node: DataNode; event: React.MouseEvent }) => {
     info.event.preventDefault()
     const node = info.node as unknown as TreeNode
-    contextNodeRef.current = { key: node.key, type: node.type, id: node.id }
+    contextNodeRef.current = { key: node.key, type: node.type, id: node.id, parent_id: node.parent_id, folder_id: node.folder_id, sheet_id: node.sheet_id }
     flushSync(() => forceUpdate(n => n + 1))
   }
 
@@ -230,6 +230,17 @@ export default function DirectoryTreeComponent(): JSX.Element {
     })
   }
 
+  const findInTree = (nodes: TreeNode[], id: number, type: string): TreeNode | null => {
+    for (const n of nodes) {
+      if (n.type === type && n.id === id) return n
+      if (n.children) {
+        const found = findInTree(n.children, id, type)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
   const deleteItem = () => {
     const node = contextNodeRef.current
     if (!node) return
@@ -252,7 +263,31 @@ export default function DirectoryTreeComponent(): JSX.Element {
           } else if (node.type === 'part') {
             await window.api.part.delete({ id: node.id })
           }
-          selectNode(null)
+          // Navigate to nearest ancestor if the deleted item is the current selection
+          if (selectedNode) {
+            if (node.type === 'part' && selectedNode.type === 'sheet' && selectedNode.partId === node.id) {
+              const sheetNode = findInTree(treeNodes, node.sheet_id!, 'sheet')
+              selectNode({ id: node.sheet_id!, type: 'sheet', name: sheetNode?.title as string || '' })
+            } else if (selectedNode.type === node.type && selectedNode.id === node.id) {
+              if (node.type === 'folder') {
+                const parentId = node.parent_id
+                if (parentId != null) {
+                  const parent = findInTree(treeNodes, parentId, 'folder')
+                  selectNode({ id: parentId, type: 'folder', name: parent?.title as string || '' })
+                } else {
+                  selectNode(null)
+                }
+              } else if (node.type === 'sheet') {
+                const folderId = node.folder_id
+                if (folderId != null) {
+                  const parent = findInTree(treeNodes, folderId, 'folder')
+                  selectNode({ id: folderId, type: 'folder', name: parent?.title as string || '' })
+                } else {
+                  selectNode(null)
+                }
+              }
+            }
+          }
           await refreshTree()
           message.success('已删除')
         } catch (e) {
