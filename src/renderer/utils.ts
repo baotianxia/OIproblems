@@ -9,7 +9,8 @@ export function submitOnEnter(e: { key: string }): void {
 
 const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
 
-export function renderMarkdown(text: string): ReactNode {
+export function renderMarkdown(text: string, isDark?: boolean): ReactNode {
+  const linkColor = isDark ? '#64B5F6' : '#1E88E5'
   const parts: ReactNode[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null = null
@@ -18,7 +19,7 @@ export function renderMarkdown(text: string): ReactNode {
       parts.push(text.slice(lastIndex, match.index))
     }
     parts.push(
-      createElement('a', { key: match.index, href: match[2], target: '_blank', rel: 'noopener noreferrer' }, match[1])
+      createElement('a', { key: match.index, href: match[2], target: '_blank', rel: 'noopener noreferrer', style: { color: linkColor } }, match[1])
     )
     lastIndex = match.index + match[0].length
   }

@@ -103,7 +103,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
             id={`problem-${problem.id}`}
             style={{
               padding: '8px 16px',
-              background: isHighlighted ? token.colorPrimaryBg : problem.completed ? (isDark ? 'rgba(0, 168, 120, 0.15)' : token.colorSuccessBg) : undefined,
+              background: isHighlighted ? token.colorPrimaryBg : problem.completed ? (isDark ? 'rgba(76, 175, 80, 0.12)' : token.colorSuccessBg) : undefined,
               transition: 'background-color 0.5s'
             }}
             actions={[
@@ -153,7 +153,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
               onChange={() => handleToggle(problem.id)}
               style={{ textDecoration: problem.completed ? 'line-through' : 'none', color: problem.completed ? token.colorTextTertiary : undefined }}
             >
-              {renderMarkdown(problem.name)}
+              {renderMarkdown(problem.name, isDark)}
             </Checkbox>
           </List.Item>
         )

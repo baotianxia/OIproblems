@@ -18,7 +18,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<GlobalStats | null>(null)
-  const { selectNode, refreshTree, treeVersion, dataVersion } = useAppContext()
+  const { selectNode, refreshTree, treeVersion, dataVersion, isDark } = useAppContext()
 
   const handleRandomProblem = async () => {
     const result = await window.api.problem.randomFromContext({ folderId })
@@ -200,7 +200,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     if (!description) return null
     return (
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <Typography.Text style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{renderMarkdown(description)}</Typography.Text>
+        <Typography.Text style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{renderMarkdown(description, isDark)}</Typography.Text>
         <Space size={2}>
           <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopyDescription} />
           <Button type="text" size="small" icon={<EditOutlined />} onClick={handleEditDescription} />

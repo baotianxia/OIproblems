@@ -20,7 +20,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
   const [data, setData] = useState<SheetDetail | null>(null)
   const [mdVisible, setMdVisible] = useState(false)
   const [highlightedProblemId, setHighlightedProblemId] = useState<number | null>(null)
-  const { refreshTree, selectNode, dataVersion, treeVersion } = useAppContext()
+  const { refreshTree, selectNode, dataVersion, treeVersion, isDark } = useAppContext()
   const partRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
   const loadData = useCallback(async () => {
@@ -207,7 +207,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     if (!data.sheet.description) return null
     return (
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <Typography.Text style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{renderMarkdown(data.sheet.description)}</Typography.Text>
+        <Typography.Text style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{renderMarkdown(data.sheet.description, isDark)}</Typography.Text>
         <Space size={2}>
           <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopyDescription} />
           <Button type="text" size="small" icon={<EditOutlined />} onClick={handleEditDescription} />
