@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { List, Checkbox, Button, Popconfirm, Input, Modal, message, Space, theme } from 'antd'
+import { List, Checkbox, Button, Popconfirm, Input, Modal, message, Space, theme, Tooltip } from 'antd'
 import { DeleteOutlined, EditOutlined, ArrowUpOutlined, ArrowDownOutlined, CopyOutlined, LinkOutlined } from '@ant-design/icons'
 import { submitOnEnter, renderMarkdown } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
@@ -116,50 +116,57 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
             actions={[
               showReorder && (
                 <Space key="reorder" size={0}>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<ArrowUpOutlined />}
-                    disabled={index === 0}
-                    onClick={() => handleMoveUp(index)}
-                  />
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<ArrowDownOutlined />}
-                    disabled={index === problems.length - 1}
-                    onClick={() => handleMoveDown(index)}
-                  />
+                  <Tooltip title="上移">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<ArrowUpOutlined />}
+                      disabled={index === 0}
+                      onClick={() => handleMoveUp(index)}
+                    />
+                  </Tooltip>
+                  <Tooltip title="下移">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<ArrowDownOutlined />}
+                      disabled={index === problems.length - 1}
+                      onClick={() => handleMoveDown(index)}
+                    />
+                  </Tooltip>
                 </Space>
               ),
-              <Button
-                key="copy-id"
-                type="text"
-                size="small"
-                icon={<LinkOutlined />}
-                disabled={!idContent}
-                style={{ opacity: idContent ? 1 : 0.25, color: idContent ? undefined : token.colorTextQuaternary }}
-                onClick={() => {
-                  if (idContent) {
-                    navigator.clipboard.writeText(idContent)
-                    message.success('已复制')
-                  }
-                }}
-              />,
-              <Button
-                key="edit"
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => handleEdit(problem.id)}
-              />,
-              <Button
-                key="copy"
-                type="text"
-                size="small"
-                icon={<CopyOutlined />}
-                onClick={() => handleCopy(problem)}
-              />,
+              <Tooltip key="copy-id" title={idContent || '无题号'}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<LinkOutlined />}
+                  disabled={!idContent}
+                  style={{ opacity: idContent ? 1 : 0.25, color: idContent ? undefined : token.colorTextQuaternary }}
+                  onClick={() => {
+                    if (idContent) {
+                      navigator.clipboard.writeText(idContent)
+                      message.success('已复制')
+                    }
+                  }}
+                />
+              </Tooltip>,
+              <Tooltip key="edit" title="编辑">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(problem.id)}
+                />
+              </Tooltip>,
+              <Tooltip key="copy" title="复制题目">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CopyOutlined />}
+                  onClick={() => handleCopy(problem)}
+                />
+              </Tooltip>,
               <Popconfirm
                 key="delete"
                 title="确认删除此题？"
