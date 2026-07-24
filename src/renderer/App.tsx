@@ -13,7 +13,7 @@ import MarkdownImport from './components/MarkdownImport'
 const { Sider, Content } = Layout
 
 function AppLayout(): JSX.Element {
-  const { selectedNode, refreshTree, selectNode, treeVersion, isDark, toggleTheme, bumpDataVersion } = useAppContext()
+  const { selectedNode, refreshTree, selectNode, treeVersion, dataVersion, isDark, toggleTheme, bumpDataVersion } = useAppContext()
   const { token } = theme.useToken()
   const [initialLoading, setInitialLoading] = useState(true)
   const [mdImportVisible, setMdImportVisible] = useState(false)
@@ -34,7 +34,7 @@ function AppLayout(): JSX.Element {
 
   useEffect(() => {
     loadGlobalStats()
-  }, [loadGlobalStats, treeVersion])
+  }, [loadGlobalStats, treeVersion, dataVersion])
 
   useEffect(() => {
     const root = document.documentElement
