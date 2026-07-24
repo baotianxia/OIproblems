@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { getScrollPos, setScrollPos } from './scrollCache'
-import { Typography, Card, Space, Spin, Empty, Button, Modal, Input, message } from 'antd'
+import { Typography, Card, Space, Spin, Empty, Button, Modal, Input, message, Dropdown } from 'antd'
+import type { MenuProps } from 'antd'
 import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
-import { renderMarkdown } from '../utils'
+import { renderMarkdown, submitOnEnter } from '../utils'
+import { AutoFocusInput } from './AutoFocusInput'
 import { useAppContext } from '../context/AppContext'
 
 interface Props {
@@ -16,7 +18,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<GlobalStats | null>(null)
-  const { selectNode, treeVersion, dataVersion } = useAppContext()
+  const { selectNode, refreshTree, treeVersion, dataVersion } = useAppContext()
 
   const handleRandomProblem = async () => {
     const result = await window.api.problem.randomFromContext({ folderId })
@@ -115,6 +117,74 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     message.success('描述已复制到剪贴板')
   }
 
+  const renameFolder = (id: number, currentName: string) => {
+    let newName = ''
+    Modal.confirm({
+      title: '重命名文件夹',
+      autoFocusButton: null,
+      content: (
+        <AutoFocusInput defaultValue={currentName} placeholder="输入新名称" onChange={e => { newName = e.target.value }} onKeyDown={submitOnEnter} />
+      ),
+      onOk: async () => {
+        if (!newName.trim()) return
+        await window.api.folder.rename({ id, name: newName.trim() })
+        loadData()
+        refreshTree()
+        message.success('已重命名')
+      }
+    })
+  }
+
+  const deleteFolder = (id: number) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '删除后无法恢复，确认继续？',
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        await window.api.folder.delete({ id })
+        selectNode(null)
+        await refreshTree()
+        message.success('已删除')
+      }
+    })
+  }
+
+  const renameSheet = (id: number, currentName: string) => {
+    let newName = ''
+    Modal.confirm({
+      title: '重命题单',
+      autoFocusButton: null,
+      content: (
+        <AutoFocusInput defaultValue={currentName} placeholder="输入新名称" onChange={e => { newName = e.target.value }} onKeyDown={submitOnEnter} />
+      ),
+      onOk: async () => {
+        if (!newName.trim()) return
+        await window.api.sheet.rename({ id, name: newName.trim() })
+        loadData()
+        refreshTree()
+        message.success('已重命名')
+      }
+    })
+  }
+
+  const deleteSheet = (id: number) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '删除后无法恢复，确认继续？',
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        await window.api.sheet.delete({ id })
+        selectNode(null)
+        await refreshTree()
+        message.success('已删除')
+      }
+    })
+  }
+
   if (loading) return <Spin style={{ display: 'block', marginTop: 100 }} />
 
   const renderStats = () => {
@@ -159,17 +229,24 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
         <div style={{ marginBottom: 24 }}>
           <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>子文件夹</Typography.Text>
           <Space wrap>
-            {subFolders.map(f => (
-              <Card
-                key={f.id}
-                hoverable
-                size="small"
-                style={{ width: 180 }}
-                onClick={() => selectNode({ id: f.id, type: 'folder', name: f.name })}
-              >
-                <FolderOutlined /> {f.name}
-              </Card>
-            ))}
+            {subFolders.map(f => {
+              const folderMenuItems: MenuProps['items'] = [
+                { key: 'rename', label: '重命名', onClick: () => renameFolder(f.id, f.name) },
+                { key: 'delete', label: '删除', danger: true, onClick: () => deleteFolder(f.id) },
+              ]
+              return (
+                <Dropdown key={f.id} menu={{ items: folderMenuItems }} trigger={['contextMenu']}>
+                  <Card
+                    hoverable
+                    size="small"
+                    style={{ width: 180 }}
+                    onClick={() => selectNode({ id: f.id, type: 'folder', name: f.name })}
+                  >
+                    <FolderOutlined /> {f.name}
+                  </Card>
+                </Dropdown>
+              )
+            })}
           </Space>
         </div>
       )}
@@ -178,17 +255,24 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
         <div>
           <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>题单</Typography.Text>
           <Space wrap>
-            {sheets.map(s => (
-              <Card
-                key={s.id}
-                hoverable
-                size="small"
-                style={{ width: 180 }}
-                onClick={() => selectNode({ id: s.id, type: 'sheet', name: s.name })}
-              >
-                <OrderedListOutlined /> {s.name}
-              </Card>
-            ))}
+            {sheets.map(s => {
+              const sheetMenuItems: MenuProps['items'] = [
+                { key: 'rename', label: '重命名', onClick: () => renameSheet(s.id, s.name) },
+                { key: 'delete', label: '删除', danger: true, onClick: () => deleteSheet(s.id) },
+              ]
+              return (
+                <Dropdown key={s.id} menu={{ items: sheetMenuItems }} trigger={['contextMenu']}>
+                  <Card
+                    hoverable
+                    size="small"
+                    style={{ width: 180 }}
+                    onClick={() => selectNode({ id: s.id, type: 'sheet', name: s.name })}
+                  >
+                    <OrderedListOutlined /> {s.name}
+                  </Card>
+                </Dropdown>
+              )
+            })}
           </Space>
         </div>
       )}
