@@ -20,13 +20,13 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
   const [data, setData] = useState<SheetDetail | null>(null)
   const [mdVisible, setMdVisible] = useState(false)
   const [highlightedProblemId, setHighlightedProblemId] = useState<number | null>(null)
-  const { refreshTree, selectNode, dataVersion } = useAppContext()
+  const { refreshTree, selectNode, dataVersion, treeVersion } = useAppContext()
   const partRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
   const loadData = useCallback(async () => {
     const result = await window.api.sheet.getById({ id: sheetId })
     setData(result)
-  }, [sheetId, dataVersion])
+  }, [sheetId, dataVersion, treeVersion])
 
   useEffect(() => {
     loadData()

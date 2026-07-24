@@ -16,7 +16,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<GlobalStats | null>(null)
-  const { selectNode } = useAppContext()
+  const { selectNode, treeVersion, dataVersion } = useAppContext()
 
   const handleRandomProblem = async () => {
     const result = await window.api.problem.randomFromContext({ folderId })
@@ -48,7 +48,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     } finally {
       setLoading(false)
     }
-  }, [folderId])
+  }, [folderId, treeVersion, dataVersion])
 
   useEffect(() => {
     loadData()

@@ -3,6 +3,7 @@ import { List, Checkbox, Button, Popconfirm, Input, Modal, message, Space, theme
 import { DeleteOutlined, EditOutlined, ArrowUpOutlined, ArrowDownOutlined, CopyOutlined } from '@ant-design/icons'
 import { submitOnEnter, renderMarkdown } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
+import { useAppContext } from '../context/AppContext'
 
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 
 export default function ProblemList({ problems, onRefresh, showReorder = true, highlightedId, onHighlightDone, highlightKey }: Props): JSX.Element {
   const { token } = theme.useToken()
+  const { bumpDataVersion } = useAppContext()
 
   useEffect(() => {
     if (highlightedId == null) return
@@ -30,12 +32,14 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
 
   const handleToggle = async (id: number) => {
     await window.api.problem.toggle({ id })
+    bumpDataVersion()
     onRefresh()
   }
 
   const handleDelete = async (id: number) => {
     await window.api.problem.delete({ id })
     message.success('已删除')
+    bumpDataVersion()
     onRefresh()
   }
 
@@ -55,6 +59,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
       onOk: async () => {
         if (!newName.trim()) return
         await window.api.problem.update({ id, name: newName.trim() })
+        bumpDataVersion()
         message.success('已修改')
         onRefresh()
       }
@@ -68,6 +73,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
       sortOrder: i === index ? index - 1 : i === index - 1 ? index : i
     }))
     await window.api.problem.reorder({ items })
+    bumpDataVersion()
     onRefresh()
   }
 
@@ -78,6 +84,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
       sortOrder: i === index ? index + 1 : i === index + 1 ? index : i
     }))
     await window.api.problem.reorder({ items })
+    bumpDataVersion()
     onRefresh()
   }
 
