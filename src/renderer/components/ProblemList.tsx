@@ -103,7 +103,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
             id={`problem-${problem.id}`}
             style={{
               padding: '8px 16px',
-              background: isHighlighted ? token.colorPrimaryBg : problem.completed ? (isDark ? '#1e4a2a' : token.colorSuccessBg) : undefined,
+              background: isHighlighted ? token.colorPrimaryBg : problem.completed ? (isDark ? 'rgba(82, 196, 26, 0.15)' : token.colorSuccessBg) : undefined,
               transition: 'background-color 0.5s'
             }}
             actions={[
