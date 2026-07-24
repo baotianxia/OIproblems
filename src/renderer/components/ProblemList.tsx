@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { List, Checkbox, Button, Popconfirm, Input, Modal, message, Space, theme } from 'antd'
 import { DeleteOutlined, EditOutlined, ArrowUpOutlined, ArrowDownOutlined, CopyOutlined } from '@ant-design/icons'
-import { submitOnEnter } from '../utils'
+import { submitOnEnter, renderMarkdown } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 
 
@@ -146,7 +146,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
               onChange={() => handleToggle(problem.id)}
               style={{ textDecoration: problem.completed ? 'line-through' : 'none', color: problem.completed ? token.colorTextTertiary : undefined }}
             >
-              {problem.name}
+              {renderMarkdown(problem.name)}
             </Checkbox>
           </List.Item>
         )

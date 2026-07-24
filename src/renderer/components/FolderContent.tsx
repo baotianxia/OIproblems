@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react
 import { getScrollPos, setScrollPos } from './scrollCache'
 import { Typography, Card, Space, Spin, Empty, Button, Modal, Input, message } from 'antd'
 import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { renderMarkdown } from '../utils'
 import { useAppContext } from '../context/AppContext'
 
 interface Props {
@@ -131,7 +132,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     if (!description) return null
     return (
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <Typography.Text style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{description}</Typography.Text>
+        <Typography.Text style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{renderMarkdown(description)}</Typography.Text>
         <Space size={2}>
           <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopyDescription} />
           <Button type="text" size="small" icon={<EditOutlined />} onClick={handleEditDescription} />

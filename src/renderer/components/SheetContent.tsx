@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react
 import { getScrollPos, setScrollPos } from './scrollCache'
 import { Typography, Button, Space, Modal, Input, message, Empty, Spin } from 'antd'
 import { PlusOutlined, ImportOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
-import { submitOnEnter } from '../utils'
+import { submitOnEnter, renderMarkdown } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 import ProblemList from './ProblemList'
 import PartSection from './PartSection'
@@ -207,7 +207,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     if (!data.sheet.description) return null
     return (
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <Typography.Text style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{data.sheet.description}</Typography.Text>
+        <Typography.Text style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{renderMarkdown(data.sheet.description)}</Typography.Text>
         <Space size={2}>
           <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopyDescription} />
           <Button type="text" size="small" icon={<EditOutlined />} onClick={handleEditDescription} />
