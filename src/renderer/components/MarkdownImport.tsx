@@ -9,6 +9,7 @@ interface Props {
   targetFolderId?: number
   sheetId?: number
   activePartId?: number
+  contextHint?: string
   onImported: () => void
 }
 
@@ -62,6 +63,9 @@ export default function MarkdownImport({ visible, onClose, targetFolderId, sheet
       cancelText="取消"
       width={600}
     >
+      {contextHint && (
+        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>{contextHint}</Typography.Text>
+      )}
       <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
         支持两种格式：
       </Typography.Paragraph>

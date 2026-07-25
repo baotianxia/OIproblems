@@ -17,6 +17,7 @@ function AppLayout(): JSX.Element {
   const { token } = theme.useToken()
   const [initialLoading, setInitialLoading] = useState(true)
   const [mdImportVisible, setMdImportVisible] = useState(false)
+  const [mdImportHint, setMdImportHint] = useState('')
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null)
 
   const loadGlobalStats = useCallback(async () => {
@@ -56,38 +57,55 @@ function AppLayout(): JSX.Element {
     }
   }
 
-  const handleNewFolder = () => {
-    const parentId = selectedNode?.type === 'folder' ? selectedNode.id : undefined
+  const getParentContext = useCallback(async (node: SelectedNode | null): Promise<{ parentId: number | undefined; hint: string }> => {
+    if (!node) return { parentId: undefined, hint: '将创建在根目录' }
+    if (node.type === 'folder') return { parentId: node.id, hint: `将在"${node.name}"下创建` }
+    if (node.type === 'sheet' || node.type === 'part') {
+      const fid = node.type === 'sheet' ? node.folderId : undefined
+      if (fid != null) {
+        const data = await window.api.tree.get()
+        const folder = data.folders.find(f => f.id === fid)
+        return { parentId: fid, hint: `将在"${folder?.name || ''}"下创建` }
+      }
+      return { parentId: undefined, hint: '将创建在根目录' }
+    }
+    return { parentId: undefined, hint: '将创建在根目录' }
+  }, [])
+
+  const handleNewFolder = async () => {
+    const context = await getParentContext(selectedNode)
     let name = ''
     Modal.confirm({
       title: '新建文件夹',
       autoFocusButton: null,
       content: (
+        <div>
+          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>{context.hint}</Typography.Text>
           <AutoFocusInput
             placeholder="输入文件夹名称"
             onChange={e => { name = e.target.value }}
-          onKeyDown={submitOnEnter}
-        />
+            onKeyDown={submitOnEnter}
+          />
+        </div>
       ),
       onOk: async () => {
         if (!name.trim()) return
-        await window.api.folder.create({ name: name.trim(), parentId })
+        await window.api.folder.create({ name: name.trim(), parentId: context.parentId })
         await refreshTree()
         message.success('文件夹已创建')
       }
     })
   }
 
-  const handleNewSheet = () => {
-    const folderId = selectedNode?.type === 'folder' ? selectedNode.id : undefined
-    const hint = folderId ? `（将在"${selectedNode!.name}"下创建）` : '（将创建在根目录）'
+  const handleNewSheet = async () => {
+    const context = await getParentContext(selectedNode)
     let name = ''
     Modal.confirm({
       title: '新建题单',
       autoFocusButton: null,
       content: (
         <div>
-          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>{hint}</Typography.Text>
+          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>{context.hint}</Typography.Text>
           <AutoFocusInput
             placeholder="输入题单名称"
             onChange={e => { name = e.target.value }}
@@ -97,8 +115,8 @@ function AppLayout(): JSX.Element {
       ),
       onOk: async () => {
         if (!name.trim()) return
-        const result = await window.api.sheet.create({ name: name.trim(), folderId })
-        selectNode({ id: result.id, type: 'sheet', name: name.trim() })
+        const result = await window.api.sheet.create({ name: name.trim(), folderId: context.parentId })
+        selectNode({ id: result.id, type: 'sheet', name: name.trim(), folderId: context.parentId })
         await refreshTree()
         message.success('题单已创建')
       }
@@ -175,7 +193,23 @@ function AppLayout(): JSX.Element {
             <Space size={4}>
               <Button size="small" icon={<FolderAddOutlined />} onClick={handleNewFolder}>新建文件夹</Button>
               <Button size="small" icon={<OrderedListOutlined />} onClick={handleNewSheet}>新建题单</Button>
-              <Button size="small" icon={<ImportOutlined />} onClick={() => setMdImportVisible(true)}>导入</Button>
+              <Button size="small" icon={<ImportOutlined />} onClick={async () => {
+                if (!selectedNode) { setMdImportHint('将导入到根目录'); setMdImportVisible(true); return }
+                if (selectedNode.type === 'folder') { setMdImportHint(`将导入到"${selectedNode.name}"`); setMdImportVisible(true); return }
+                if (selectedNode.type === 'sheet' || selectedNode.type === 'part') {
+                  if (selectedNode.folderId != null) {
+                    const data = await window.api.tree.get()
+                    const folder = data.folders.find(f => f.id === selectedNode.folderId)
+                    setMdImportHint(`将导入到"${folder?.name || ''}"`)
+                  } else {
+                    setMdImportHint('将导入到根目录')
+                  }
+                  setMdImportVisible(true)
+                  return
+                }
+                setMdImportHint('将导入到根目录')
+                setMdImportVisible(true)
+              }}>导入</Button>
             </Space>
           </div>
           <div onClick={e => e.stopPropagation()}><SearchPanel /></div>
@@ -193,6 +227,7 @@ function AppLayout(): JSX.Element {
         targetFolderId={selectedNode?.type === 'folder' ? selectedNode.id : undefined}
         sheetId={selectedNode?.type === 'sheet' ? selectedNode.id : undefined}
         activePartId={selectedNode?.partId}
+        contextHint={mdImportHint}
         onImported={() => { refreshTree(); bumpDataVersion(); setMdImportVisible(false); loadGlobalStats() }}
       />
     </Layout>

@@ -57,6 +57,7 @@ function buildTreeData(
         type: 'part' as const,
         id: p.id,
         sheet_id: p.sheet_id,
+        folder_id: s.folder_id,
         isLeaf: true
       }))
     return {
@@ -128,9 +129,9 @@ export default function DirectoryTreeComponent(): JSX.Element {
     if (node.type === 'folder') {
       selectNode({ id: node.id, type: 'folder', name: node.title as string })
     } else if (node.type === 'sheet') {
-      selectNode({ id: node.id, type: 'sheet', name: node.title as string })
+      selectNode({ id: node.id, type: 'sheet', name: node.title as string, folderId: node.folder_id })
     } else if (node.type === 'part') {
-      selectNode({ id: node.sheet_id!, type: 'sheet', name: node.title as string, partId: node.id })
+      selectNode({ id: node.sheet_id!, type: 'sheet', name: node.title as string, partId: node.id, folderId: node.folder_id })
     }
   }
 
