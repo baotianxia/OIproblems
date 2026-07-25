@@ -259,15 +259,16 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
         ))
       ) : null}
 
-      {!hasParts && data.directProblems.length === 0 ? (
-        <Empty description="暂无题目，点击上方按钮添加" style={{ marginTop: 60 }} />
-      ) : null}
-
-      {!hasParts && data.directProblems.length > 0 ? (
-        <div>
-          <Typography.Text strong style={{ fontSize: 15, display: 'block', marginBottom: 8 }}>题目</Typography.Text>
+      {data.directProblems.length > 0 ? (
+        <div style={hasParts ? { marginTop: 24 } : undefined}>
+          {hasParts && <Typography.Text strong style={{ fontSize: 15, display: 'block', marginBottom: 8 }}>未分区的题目</Typography.Text>}
+          {!hasParts && <Typography.Text strong style={{ fontSize: 15, display: 'block', marginBottom: 8 }}>题目</Typography.Text>}
           <ProblemList problems={data.directProblems} onRefresh={loadData} highlightedId={highlightedProblemId} onHighlightDone={() => setHighlightedProblemId(null)} highlightKey={highlightKey} />
         </div>
+      ) : null}
+
+      {!hasParts && data.directProblems.length === 0 ? (
+        <Empty description="暂无题目，点击上方按钮添加" style={{ marginTop: 60 }} />
       ) : null}
 
       <MarkdownImport
