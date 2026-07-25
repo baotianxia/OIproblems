@@ -13,7 +13,7 @@ interface Props {
   onImported: () => void
 }
 
-export default function MarkdownImport({ visible, onClose, targetFolderId, sheetId, activePartId, onImported }: Props): JSX.Element {
+export default function MarkdownImport({ visible, onClose, targetFolderId, sheetId, activePartId, contextHint, onImported }: Props): JSX.Element {
   const [text, setText] = useState('')
   const [fileName, setFileName] = useState('')
 
