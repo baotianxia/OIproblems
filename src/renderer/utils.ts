@@ -7,6 +7,20 @@ export function submitOnEnter(e: { key: string }): void {
   btn?.click()
 }
 
+export function handleLinkPaste(e: React.ClipboardEvent<HTMLTextAreaElement | HTMLInputElement>): void {
+  const html = e.clipboardData.getData('text/html')
+  if (!html) return
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const links = doc.querySelectorAll('a')
+  if (links.length === 0) return
+  const link = links[0]
+  const url = link.href
+  const text = link.textContent || url
+  if (!url || url === text) return
+  e.preventDefault()
+  document.execCommand('insertText', false, `[${text}](${url})`)
+}
+
 const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
 
 export function renderMarkdown(text: string, isDark?: boolean): ReactNode {

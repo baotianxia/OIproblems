@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react
 import { getScrollPos, setScrollPos } from './scrollCache'
 import { Typography, Button, Space, Modal, Input, message, Empty, Spin } from 'antd'
 import { PlusOutlined, ImportOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
-import { submitOnEnter, renderMarkdown } from '../utils'
+import { submitOnEnter, renderMarkdown, handleLinkPaste } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 import ProblemList from './ProblemList'
 import PartSection from './PartSection'
@@ -158,6 +158,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
           defaultValue={data.sheet.description}
           rows={3}
           onChange={e => { val = e.target.value }}
+          onPaste={handleLinkPaste}
         />
       ),
       onOk: async () => {

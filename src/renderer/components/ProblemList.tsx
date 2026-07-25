@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { List, Checkbox, Button, Popconfirm, Input, Modal, message, Space, theme, Tooltip } from 'antd'
 import { DeleteOutlined, EditOutlined, ArrowUpOutlined, ArrowDownOutlined, CopyOutlined, LinkOutlined } from '@ant-design/icons'
-import { submitOnEnter, renderMarkdown } from '../utils'
+import { submitOnEnter, renderMarkdown, handleLinkPaste } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 import { useAppContext } from '../context/AppContext'
 
@@ -54,6 +54,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
           defaultValue={problem?.name}
           onChange={e => { newName = e.target.value }}
           onKeyDown={submitOnEnter}
+          onPaste={handleLinkPaste}
         />
       ),
       onOk: async () => {

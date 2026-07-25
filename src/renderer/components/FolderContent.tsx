@@ -3,7 +3,7 @@ import { getScrollPos, setScrollPos } from './scrollCache'
 import { Typography, Card, Space, Spin, Empty, Button, Modal, Input, message, Dropdown } from 'antd'
 import type { MenuProps } from 'antd'
 import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
-import { renderMarkdown, submitOnEnter } from '../utils'
+import { renderMarkdown, submitOnEnter, handleLinkPaste } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 import { useAppContext } from '../context/AppContext'
 
@@ -101,6 +101,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
           defaultValue={description}
           rows={3}
           onChange={e => { val = e.target.value }}
+          onPaste={handleLinkPaste}
         />
       ),
       onOk: async () => {
