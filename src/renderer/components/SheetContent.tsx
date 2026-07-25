@@ -115,6 +115,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
           placeholder="输入题目名称"
           onChange={e => { name = e.target.value }}
           onKeyDown={submitOnEnter}
+          onPaste={handleLinkPaste}
         />
       ),
       onOk: async () => {
@@ -136,6 +137,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
           placeholder="输入题目名称"
           onChange={e => { name = e.target.value }}
           onKeyDown={submitOnEnter}
+          onPaste={handleLinkPaste}
         />
       ),
       onOk: async () => {
