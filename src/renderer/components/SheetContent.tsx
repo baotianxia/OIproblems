@@ -55,11 +55,6 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     }
   }, [activePartId, highlightKey])
 
-  const prevActivePartIdRef = useRef(activePartId)
-  useEffect(() => { prevActivePartIdRef.current = activePartId })
-  const prevSheetIdRef = useRef(sheetId)
-  useEffect(() => { prevSheetIdRef.current = sheetId })
-
   const scrollPosRef = useRef(0)
   useLayoutEffect(() => {
     const el = document.getElementById('scroll-container')
@@ -100,14 +95,6 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     }
     return () => { cancelled = true }
   }, [data, sheetId])
-  useLayoutEffect(() => {
-    if (activePartId != null) return
-    const el = document.getElementById('scroll-container')
-    if (!el) return
-    if (sheetId !== prevSheetIdRef.current) return
-    if (prevActivePartIdRef.current == null) return
-    el.scrollTop = 0
-  }, [activePartId, sheetId])
 
   const handleAddPart = () => {
     let title = ''
