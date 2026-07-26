@@ -55,10 +55,20 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     }
   }, [activePartId, highlightKey])
 
+  const prevPartIdRef = useRef(activePartId)
+  useEffect(() => {
+    if (prevPartIdRef.current != null && activePartId == null) {
+      const el = document.getElementById('scroll-container')
+      if (el) el.scrollTop = 0
+    }
+    prevPartIdRef.current = activePartId
+  }, [activePartId])
+
   const scrollPosRef = useRef(0)
   useLayoutEffect(() => {
     const el = document.getElementById('scroll-container')
     if (!el) return
+    scrollPosRef.current = el.scrollTop
     const onScroll = () => { scrollPosRef.current = el.scrollTop }
     el.addEventListener('scroll', onScroll)
     return () => {
@@ -71,8 +81,9 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
   }, [sheetId])
 
   const scrollRestored = useRef(false)
-  useEffect(() => { scrollRestored.current = false }, [sheetId])
+  useEffect(() => { scrollRestored.current = false }, [sheetId, activePartId])
   useLayoutEffect(() => {
+    let cancelled = false
     if (!data || scrollRestored.current) return
     scrollRestored.current = true
     const el = document.getElementById('scroll-container')
@@ -82,13 +93,16 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     if (cached !== undefined && cached > 0) {
       el.scrollTop = cached
     } else {
+      el.scrollTop = 0
       window.api.ui.get(key).then(saved => {
+        if (cancelled) return
         const pos = saved ? parseInt(saved, 10) : 0
         setScrollPos(key, pos)
         if (pos > 0) el.scrollTop = pos
       })
     }
-  }, [data, sheetId])
+    return () => { cancelled = true }
+  }, [data, sheetId, activePartId])
 
   const handleAddPart = () => {
     let title = ''

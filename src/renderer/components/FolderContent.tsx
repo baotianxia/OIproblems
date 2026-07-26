@@ -60,6 +60,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   useLayoutEffect(() => {
     const el = document.getElementById('scroll-container')
     if (!el) return
+    scrollPosRef.current = el.scrollTop
     const onScroll = () => { scrollPosRef.current = el.scrollTop }
     el.addEventListener('scroll', onScroll)
     return () => {
@@ -74,6 +75,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   const scrollRestored = useRef(false)
   useEffect(() => { scrollRestored.current = false }, [folderId])
   useLayoutEffect(() => {
+    let cancelled = false
     if (loading || !folderName || scrollRestored.current) return
     scrollRestored.current = true
     const el = document.getElementById('scroll-container')
@@ -83,12 +85,15 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     if (cached !== undefined && cached > 0) {
       el.scrollTop = cached
     } else {
+      el.scrollTop = 0
       window.api.ui.get(key).then(saved => {
+        if (cancelled) return
         const pos = saved ? parseInt(saved, 10) : 0
         setScrollPos(key, pos)
         if (pos > 0) el.scrollTop = pos
       })
     }
+    return () => { cancelled = true }
   }, [loading, folderName, folderId])
 
   const handleEditDescription = () => {
