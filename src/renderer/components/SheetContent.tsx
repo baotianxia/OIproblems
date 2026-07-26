@@ -48,6 +48,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
   }, [data, activePartId])
 
   useEffect(() => {
+    setHighlightedPartId(null)
     if (activePartId != null && highlightKey != null) {
       setHighlightedPartId(activePartId)
       const timer = setTimeout(() => setHighlightedPartId(null), 1500)
@@ -55,14 +56,10 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     }
   }, [activePartId, highlightKey])
 
-  const prevPartIdRef = useRef(activePartId)
-  useEffect(() => {
-    if (prevPartIdRef.current != null && activePartId == null) {
-      const el = document.getElementById('scroll-container')
-      if (el) el.scrollTop = 0
-    }
-    prevPartIdRef.current = activePartId
-  }, [activePartId])
+  const prevActivePartIdRef = useRef(activePartId)
+  useEffect(() => { prevActivePartIdRef.current = activePartId })
+  const prevSheetIdRef = useRef(sheetId)
+  useEffect(() => { prevSheetIdRef.current = sheetId })
 
   const scrollPosRef = useRef(0)
   useLayoutEffect(() => {
@@ -88,6 +85,14 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     scrollRestored.current = true
     const el = document.getElementById('scroll-container')
     if (!el) return
+
+    const partDeselected = activePartId == null && prevActivePartIdRef.current != null
+    const sheetChanged = sheetId !== prevSheetIdRef.current
+    if (partDeselected && !sheetChanged) {
+      el.scrollTop = 0
+      return
+    }
+
     const key = `scrollPos_sheet_${sheetId}`
     const cached = getScrollPos(key)
     if (cached !== undefined && cached > 0) {
