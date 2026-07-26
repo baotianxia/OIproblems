@@ -57,7 +57,7 @@ export default function SearchPanel(): JSX.Element {
     } else if (item.type === 'sheet') {
       selectNode({ id: item.id, type: 'sheet', name: item.name })
     } else if (item.type === 'part') {
-      selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, partId: item.id, highlightKey: key })
+      selectNode({ id: item.sheet_id!, type: 'sheet', name: (item as any).sheet_name || '', partId: item.id, partName: item.name, highlightKey: key })
     } else if (item.type === 'problem') {
       selectNode({ id: item.sheet_id!, type: 'sheet', name: item.name, highlightProblemId: item.id, highlightKey: key })
     }

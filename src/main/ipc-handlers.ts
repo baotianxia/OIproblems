@@ -253,7 +253,7 @@ export function registerIpcHandlers(): void {
     const pattern = `%${query}%`
     const folders = db.prepare("SELECT id, name, parent_id, 'folder' as type FROM folders WHERE name LIKE ?").all(pattern) as any[]
     const sheets = db.prepare("SELECT s.id, s.name, s.folder_id, 'sheet' as type FROM sheets s WHERE s.name LIKE ?").all(pattern) as any[]
-    const parts = db.prepare("SELECT p.id, p.title as name, p.sheet_id, 'part' as type FROM parts p WHERE p.title LIKE ?").all(pattern) as any[]
+    const parts = db.prepare("SELECT p.id, p.title as name, p.sheet_id, COALESCE(s.name, '') as sheet_name, 'part' as type FROM parts p LEFT JOIN sheets s ON p.sheet_id = s.id WHERE p.title LIKE ?").all(pattern) as any[]
     const problems = db.prepare("SELECT p.id, p.name, p.part_id, COALESCE(p.sheet_id, pt.sheet_id) as sheet_id, 'problem' as type FROM problems p LEFT JOIN parts pt ON p.part_id = pt.id WHERE p.name LIKE ?").all(pattern) as any[]
     return { folders, sheets, parts, problems }
   })
@@ -338,6 +338,30 @@ export function registerIpcHandlers(): void {
     const hasH1 = lines.some(l => /^#[^#]/.test(l.trim()))
     const hasH2 = lines.some(l => /^##[^#]/.test(l.trim()))
     const hasH3 = lines.some(l => /^###[^#]/.test(l.trim()))
+
+    const inSheetContext = sheetId != null || activePartId != null
+    const inPartContext = activePartId != null
+
+    if (hasH1 || hasH2) {
+      if (inSheetContext) {
+        return { success: false, error: '导入包含文件夹/题单，不能在题单中选择' }
+      }
+    } else if (hasH3) {
+      if (inPartContext) {
+        return { success: false, error: 'Part 中不允许创建 Part' }
+      }
+      if (!inSheetContext) {
+        return { success: false, error: '请先选题单' }
+      }
+    } else {
+      const hasContent = lines.some(l => l.trim().length > 0)
+      if (!hasContent) {
+        return { success: false, error: '未检测到有效内容' }
+      }
+      if (!inSheetContext) {
+        return { success: false, error: '请先选题单' }
+      }
+    }
 
     let currentFolderId: number | null = targetFolderId ?? null
     let currentSheetId: number | null = sheetId ?? null

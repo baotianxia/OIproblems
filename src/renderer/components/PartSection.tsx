@@ -9,14 +9,16 @@ interface Props {
   part: PartItem & { problems: ProblemItem[]; totalProblems: number; completedProblems: number }
   onRefresh: () => void
   onAddProblem: () => void
-  active?: boolean
+  selected?: boolean
+  highlighted?: boolean
   domRef?: (el: HTMLDivElement | null) => void
   highlightedProblemId?: number | null
   onHighlightDone?: () => void
   highlightKey?: number
+  onSelect?: (partId: number, partTitle: string) => void
 }
 
-export default function PartSection({ part, onRefresh, onAddProblem, active, domRef, highlightedProblemId, onHighlightDone, highlightKey }: Props): JSX.Element {
+export default function PartSection({ part, onRefresh, onAddProblem, selected, highlighted, domRef, highlightedProblemId, onHighlightDone, highlightKey, onSelect }: Props): JSX.Element {
   const { token } = theme.useToken()
   const [collapsed, setCollapsed] = useState(false)
   const rate = part.totalProblems > 0
@@ -53,13 +55,15 @@ export default function PartSection({ part, onRefresh, onAddProblem, active, dom
     <div
       ref={domRef}
       id={`part-${part.id}`}
+      onClick={(e) => { e.stopPropagation(); onSelect?.(part.id, part.title) }}
       style={{
         marginBottom: 16,
-        border: `1px solid ${active ? token.colorPrimary : token.colorBorderSecondary}`,
+        border: `2px solid ${selected ? token.colorPrimary : token.colorBorderSecondary}`,
         borderRadius: 8,
         padding: 12,
-        background: active ? token.colorPrimaryBg : undefined,
-        transition: 'border-color 0.3s, background 0.3s'
+        background: highlighted ? token.colorPrimaryBg : undefined,
+        cursor: 'pointer',
+        transition: 'border-color 0.2s, background 0.2s'
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

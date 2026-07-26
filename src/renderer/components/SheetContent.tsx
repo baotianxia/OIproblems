@@ -14,13 +14,16 @@ interface Props {
   activePartId?: number
   highlightProblemId?: number | null
   highlightKey?: number
+  onSelectPart?: (partId: number, partTitle: string) => void
+  onDeselectPart?: () => void
 }
 
-export default function SheetContent({ sheetId, activePartId, highlightProblemId, highlightKey }: Props): JSX.Element {
+export default function SheetContent({ sheetId, activePartId, highlightProblemId, highlightKey, onSelectPart, onDeselectPart }: Props): JSX.Element {
   const [data, setData] = useState<SheetDetail | null>(null)
   const [mdVisible, setMdVisible] = useState(false)
   const [highlightedProblemId, setHighlightedProblemId] = useState<number | null>(null)
-  const { refreshTree, selectNode, dataVersion, treeVersion, isDark } = useAppContext()
+  const [highlightedPartId, setHighlightedPartId] = useState<number | null>(null)
+  const { refreshTree, selectNode, dataVersion, treeVersion, isDark, selectedNode } = useAppContext()
   const partRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
   const loadData = useCallback(async () => {
@@ -41,12 +44,16 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
   useEffect(() => {
     if (data && activePartId && partRefs.current[activePartId]) {
       setTimeout(() => partRefs.current[activePartId]?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
-      const timer = setTimeout(() => {
-        selectNode({ id: sheetId, type: 'sheet', name: data.sheet.name })
-      }, 1500)
+    }
+  }, [data, activePartId])
+
+  useEffect(() => {
+    if (activePartId != null && highlightKey != null) {
+      setHighlightedPartId(activePartId)
+      const timer = setTimeout(() => setHighlightedPartId(null), 1500)
       return () => clearTimeout(timer)
     }
-  }, [data, activePartId, sheetId, selectNode])
+  }, [activePartId, highlightKey])
 
   const scrollPosRef = useRef(0)
   useLayoutEffect(() => {
@@ -250,11 +257,13 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
             part={part}
             onRefresh={() => { loadData(); refreshTree() }}
             onAddProblem={() => handleAddPartProblem(part.id)}
-            active={part.id === activePartId}
+            selected={part.id === activePartId}
+            highlighted={part.id === highlightedPartId}
             domRef={el => { partRefs.current[part.id] = el }}
             highlightedProblemId={highlightedProblemId}
             onHighlightDone={() => setHighlightedProblemId(null)}
             highlightKey={highlightKey}
+            onSelect={(id, title) => onSelectPart?.(id, title)}
           />
         ))
       ) : null}
@@ -274,9 +283,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
       <MarkdownImport
         visible={mdVisible}
         onClose={() => setMdVisible(false)}
-        sheetId={sheetId}
-        activePartId={activePartId}
-        targetFolderId={undefined}
+        selectedNode={selectedNode}
         onImported={() => { loadData(); refreshTree() }}
       />
     </div>

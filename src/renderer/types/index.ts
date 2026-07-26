@@ -15,6 +15,7 @@ export interface SelectedNode {
   type: 'folder' | 'sheet' | 'part'
   name?: string
   partId?: number
+  partName?: string
   folderId?: number
   highlightProblemId?: number
   highlightKey?: number

@@ -17,7 +17,6 @@ function AppLayout(): JSX.Element {
   const { token } = theme.useToken()
   const [initialLoading, setInitialLoading] = useState(true)
   const [mdImportVisible, setMdImportVisible] = useState(false)
-  const [mdImportHint, setMdImportHint] = useState('')
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null)
 
   const loadGlobalStats = useCallback(async () => {
@@ -142,7 +141,18 @@ function AppLayout(): JSX.Element {
       )
     }
     if (selectedNode.type === 'sheet') {
-      return <SheetContent sheetId={selectedNode.id} activePartId={selectedNode.partId} highlightProblemId={selectedNode.highlightProblemId} highlightKey={selectedNode.highlightKey} />
+      return <SheetContent
+        sheetId={selectedNode.id}
+        activePartId={selectedNode.partId}
+        highlightProblemId={selectedNode.highlightProblemId}
+        highlightKey={selectedNode.highlightKey}
+        onSelectPart={(partId, partTitle) => {
+          if (selectedNode?.type === 'sheet') selectNode({ id: selectedNode.id, type: 'sheet', name: selectedNode.name, partId, partName: partTitle, folderId: selectedNode.folderId })
+        }}
+        onDeselectPart={() => {
+          if (selectedNode?.type === 'sheet') selectNode({ id: selectedNode.id, type: 'sheet', name: selectedNode.name, folderId: selectedNode.folderId })
+        }}
+      />
     }
     if (selectedNode.type === 'folder') {
       return <FolderContent folderId={selectedNode.id} />
@@ -193,23 +203,7 @@ function AppLayout(): JSX.Element {
             <Space size={4}>
               <Button size="small" icon={<FolderAddOutlined />} onClick={handleNewFolder}>新建文件夹</Button>
               <Button size="small" icon={<OrderedListOutlined />} onClick={handleNewSheet}>新建题单</Button>
-              <Button size="small" icon={<ImportOutlined />} onClick={async () => {
-                if (!selectedNode) { setMdImportHint('将导入到根目录'); setMdImportVisible(true); return }
-                if (selectedNode.type === 'folder') { setMdImportHint(`将导入到"${selectedNode.name}"`); setMdImportVisible(true); return }
-                if (selectedNode.type === 'sheet' || selectedNode.type === 'part') {
-                  if (selectedNode.folderId != null) {
-                    const data = await window.api.tree.get()
-                    const folder = data.folders.find(f => f.id === selectedNode.folderId)
-                    setMdImportHint(`将导入到"${folder?.name || ''}"`)
-                  } else {
-                    setMdImportHint('将导入到根目录')
-                  }
-                  setMdImportVisible(true)
-                  return
-                }
-                setMdImportHint('将导入到根目录')
-                setMdImportVisible(true)
-              }}>导入</Button>
+              <Button size="small" icon={<ImportOutlined />} onClick={() => setMdImportVisible(true)}>导入</Button>
             </Space>
           </div>
           <div onClick={e => e.stopPropagation()}><SearchPanel /></div>
@@ -217,17 +211,18 @@ function AppLayout(): JSX.Element {
         </div>
       </Sider>
       <Layout style={{ minHeight: 0, background: token.colorBgContainer }}>
-        <Content id="scroll-container" style={{ padding: '24px', overflow: 'auto', background: token.colorBgContainer, minHeight: 0, scrollBehavior: 'auto' }}>
+        <Content id="scroll-container" style={{ padding: '24px', overflow: 'auto', background: token.colorBgContainer, minHeight: 0, scrollBehavior: 'auto' }} onClick={() => {
+          if (selectedNode?.type === 'sheet' && selectedNode.partId != null) {
+            selectNode({ id: selectedNode.id, type: 'sheet', name: selectedNode.name, folderId: selectedNode.folderId })
+          }
+        }}>
           {renderContent()}
         </Content>
       </Layout>
       <MarkdownImport
         visible={mdImportVisible}
         onClose={() => setMdImportVisible(false)}
-        targetFolderId={selectedNode?.type === 'folder' ? selectedNode.id : undefined}
-        sheetId={selectedNode?.type === 'sheet' ? selectedNode.id : undefined}
-        activePartId={selectedNode?.partId}
-        contextHint={mdImportHint}
+        selectedNode={selectedNode}
         onImported={() => { refreshTree(); bumpDataVersion(); setMdImportVisible(false); loadGlobalStats() }}
       />
     </Layout>

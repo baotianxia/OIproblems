@@ -9,6 +9,9 @@ import { AutoFocusInput } from './AutoFocusInput'
 import { useAppContext } from '../context/AppContext'
 import type { TreeNode } from '../types'
 
+let _navHighlightKey = 0
+function nextNavKey(): number { return ++_navHighlightKey }
+
 function buildTreeData(
   folders: FolderItem[],
   sheets: SheetItem[],
@@ -57,6 +60,7 @@ function buildTreeData(
         type: 'part' as const,
         id: p.id,
         sheet_id: p.sheet_id,
+        sheetName: s.name,
         folder_id: s.folder_id,
         isLeaf: true
       }))
@@ -78,7 +82,7 @@ export default function DirectoryTreeComponent(): JSX.Element {
   const { selectNode, treeVersion, refreshTree, selectedNode } = useAppContext()
   const [treeNodes, setTreeNodes] = useState<TreeNode[]>([])
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([])
-  const contextNodeRef = useRef<{ key: string; type: string; id: number; parent_id?: number | null; folder_id?: number; sheet_id?: number } | null>(null)
+  const contextNodeRef = useRef<{ key: string; type: string; id: number; name?: string; parent_id?: number | null; folder_id?: number; sheet_id?: number } | null>(null)
   const [, forceUpdate] = useState(0)
   const expandedLoaded = useRef(false)
 
@@ -115,6 +119,12 @@ export default function DirectoryTreeComponent(): JSX.Element {
     loadTree()
   }, [treeVersion, loadTree])
 
+  useEffect(() => {
+    if (selectedNode?.type === 'sheet' && selectedNode.partId != null) {
+      setExpandedKeys(keys => Array.from(new Set([...keys, `sheet-${selectedNode.id}`])))
+    }
+  }, [selectedNode])
+
   const handleSelect = (_: React.Key[], info: { node: DataNode; nativeEvent?: MouseEvent }) => {
     const node = info.node as unknown as TreeNode
 
@@ -131,14 +141,14 @@ export default function DirectoryTreeComponent(): JSX.Element {
     } else if (node.type === 'sheet') {
       selectNode({ id: node.id, type: 'sheet', name: node.title as string, folderId: node.folder_id })
     } else if (node.type === 'part') {
-      selectNode({ id: node.sheet_id!, type: 'sheet', name: node.title as string, partId: node.id, folderId: node.folder_id })
+      selectNode({ id: node.sheet_id!, type: 'sheet', name: (node as any).sheetName || '', partId: node.id, partName: node.title as string, folderId: node.folder_id, highlightKey: nextNavKey() })
     }
   }
 
   const handleRightClick = (info: { node: DataNode; event: React.MouseEvent }) => {
     info.event.preventDefault()
     const node = info.node as unknown as TreeNode
-    contextNodeRef.current = { key: node.key, type: node.type, id: node.id, parent_id: node.parent_id, folder_id: node.folder_id, sheet_id: node.sheet_id }
+    contextNodeRef.current = { key: node.key, type: node.type, id: node.id, name: node.title as string, parent_id: node.parent_id, folder_id: node.folder_id, sheet_id: node.sheet_id }
     flushSync(() => forceUpdate(n => n + 1))
   }
 
@@ -253,9 +263,12 @@ export default function DirectoryTreeComponent(): JSX.Element {
   const deleteItem = () => {
     const node = contextNodeRef.current
     if (!node) return
-    const confirmText = node.type === 'part'
-      ? '确认删除此 Part？内部的题目也将被删除'
-      : '删除后无法恢复，确认继续？'
+    const itemName = node.name || ''
+    const confirmText = node.type === 'folder'
+      ? `确认删除文件夹"${itemName}"？其下的所有题单和子文件夹也将被删除`
+      : node.type === 'sheet'
+        ? `确认删除题单"${itemName}"？所有题目和 Part 也将被删除`
+        : `确认删除 Part"${itemName}"？内部的题目也将被删除`
     Modal.confirm({
       title: '确认删除',
       autoFocusButton: null,
@@ -366,7 +379,9 @@ export default function DirectoryTreeComponent(): JSX.Element {
   })
 
   const selectedKeys: React.Key[] = selectedNode
-    ? [`${selectedNode.type}-${selectedNode.id}`]
+    ? selectedNode.type === 'sheet' && selectedNode.partId != null
+      ? [`part-${selectedNode.partId}`]
+      : [`${selectedNode.type}-${selectedNode.id}`]
     : []
 
   return (

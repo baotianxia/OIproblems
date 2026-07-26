@@ -47,7 +47,7 @@ interface ApiType {
   }
   markdown: {
     export(): Promise<{ success: boolean }>
-    import(params: { content: string; targetFolderId?: number; sheetId?: number; activePartId?: number }): Promise<{ success: boolean }>
+    import(params: { content: string; targetFolderId?: number; sheetId?: number; activePartId?: number }): Promise<{ success: boolean; error?: string }>
   }
 }
 
@@ -105,7 +105,7 @@ interface GlobalStats {
 interface SearchResults {
   folders: { id: number; name: string; parent_id: number | null; type: 'folder' }[]
   sheets: { id: number; name: string; folder_id: number; type: 'sheet' }[]
-  parts: { id: number; name: string; sheet_id: number; type: 'part' }[]
+  parts: { id: number; name: string; sheet_id: number; sheet_name: string; type: 'part' }[]
   problems: { id: number; name: string; part_id: number | null; sheet_id: number | null; type: 'problem' }[]
 }
 
