@@ -149,9 +149,6 @@ function AppLayout(): JSX.Element {
         onSelectPart={(partId, partTitle) => {
           if (selectedNode?.type === 'sheet') selectNode({ id: selectedNode.id, type: 'sheet', name: selectedNode.name, partId, partName: partTitle, folderId: selectedNode.folderId })
         }}
-        onDeselectPart={() => {
-          if (selectedNode?.type === 'sheet') selectNode({ id: selectedNode.id, type: 'sheet', name: selectedNode.name, folderId: selectedNode.folderId })
-        }}
       />
     }
     if (selectedNode.type === 'folder') {

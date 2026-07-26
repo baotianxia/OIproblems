@@ -15,10 +15,9 @@ interface Props {
   highlightProblemId?: number | null
   highlightKey?: number
   onSelectPart?: (partId: number, partTitle: string) => void
-  onDeselectPart?: () => void
 }
 
-export default function SheetContent({ sheetId, activePartId, highlightProblemId, highlightKey, onSelectPart, onDeselectPart }: Props): JSX.Element {
+export default function SheetContent({ sheetId, activePartId, highlightProblemId, highlightKey, onSelectPart }: Props): JSX.Element {
   const [data, setData] = useState<SheetDetail | null>(null)
   const [mdVisible, setMdVisible] = useState(false)
   const [highlightedProblemId, setHighlightedProblemId] = useState<number | null>(null)
