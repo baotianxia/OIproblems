@@ -78,21 +78,13 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
   }, [sheetId])
 
   const scrollRestored = useRef(false)
-  useEffect(() => { scrollRestored.current = false }, [sheetId, activePartId])
+  useLayoutEffect(() => { scrollRestored.current = false }, [sheetId])
   useLayoutEffect(() => {
     let cancelled = false
     if (!data || scrollRestored.current) return
     scrollRestored.current = true
     const el = document.getElementById('scroll-container')
     if (!el) return
-
-    const partDeselected = activePartId == null && prevActivePartIdRef.current != null
-    const sheetChanged = sheetId !== prevSheetIdRef.current
-    if (partDeselected && !sheetChanged) {
-      el.scrollTop = 0
-      return
-    }
-
     const key = `scrollPos_sheet_${sheetId}`
     const cached = getScrollPos(key)
     if (cached !== undefined && cached > 0) {
@@ -107,7 +99,15 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
       })
     }
     return () => { cancelled = true }
-  }, [data, sheetId, activePartId])
+  }, [data, sheetId])
+  useLayoutEffect(() => {
+    if (activePartId != null) return
+    const el = document.getElementById('scroll-container')
+    if (!el) return
+    if (sheetId !== prevSheetIdRef.current) return
+    if (prevActivePartIdRef.current == null) return
+    el.scrollTop = 0
+  }, [activePartId, sheetId])
 
   const handleAddPart = () => {
     let title = ''
