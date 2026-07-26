@@ -82,6 +82,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
   useLayoutEffect(() => {
     let cancelled = false
     if (!data || scrollRestored.current) return
+    if (data.sheet.id !== sheetId) return
     scrollRestored.current = true
     const el = document.getElementById('scroll-container')
     if (!el) return
