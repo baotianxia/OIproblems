@@ -360,7 +360,7 @@ export function registerIpcHandlers(): void {
     }
 
     function renderFolders(parentId: number | null, level: number): void {
-      const children = folderMap.get(parentId) ?? []
+      const children = folderMap.get(parentId ?? 0) ?? []
       for (const folder of children) {
         const h = '#'.repeat(Math.max(1, level + 1))
         md += `${h} ${folder.name}\n\n`
@@ -369,8 +369,8 @@ export function registerIpcHandlers(): void {
       }
     }
 
-    function renderSheetsInFolder(folderId: number, baseLevel: number): void {
-      const sheetList = sheets.filter(s => s.folder_id === folderId)
+    function renderSheetsInFolder(folderId: number | null, baseLevel: number): void {
+      const sheetList = sheets.filter(s => (s.folder_id ?? 0) === (folderId ?? 0))
       for (const sheet of sheetList) {
         const h = '#'.repeat(baseLevel + 1)
         md += `${h} ${sheet.name}\n\n`
@@ -397,6 +397,7 @@ export function registerIpcHandlers(): void {
     }
 
     renderFolders(null, 0)
+    renderSheetsInFolder(null, 0)
     writeFileSync(filePath, md, 'utf-8')
     return { success: true }
   })
