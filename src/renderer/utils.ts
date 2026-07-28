@@ -21,7 +21,7 @@ export function handleLinkPaste(e: React.ClipboardEvent<HTMLTextAreaElement | HT
   document.execCommand('insertText', false, `[${text}](${url})`)
 }
 
-const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
+const linkRegex = /\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)]+)\)/g
 
 export function renderMarkdown(text: string, isDark?: boolean): ReactNode {
   const linkColor = isDark ? '#64B5F6' : '#1565C0'

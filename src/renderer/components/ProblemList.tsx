@@ -13,9 +13,12 @@ interface Props {
   highlightedId?: number | null
   onHighlightDone?: () => void
   highlightKey?: number
+  selectMode?: boolean
+  selectedIds?: Set<number>
+  onToggleSelect?: (id: number) => void
 }
 
-export default function ProblemList({ problems, onRefresh, showReorder = true, highlightedId, onHighlightDone, highlightKey }: Props): JSX.Element {
+export default function ProblemList({ problems, onRefresh, showReorder = true, highlightedId, onHighlightDone, highlightKey, selectMode, selectedIds, onToggleSelect }: Props): JSX.Element {
   const { token } = theme.useToken()
   const { isDark, bumpDataVersion } = useAppContext()
 
@@ -180,6 +183,14 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
               </Popconfirm>
             ].filter(Boolean)}
           >
+            {selectMode && (
+              <Checkbox
+                key="select"
+                checked={selectedIds?.has(problem.id)}
+                onChange={() => onToggleSelect?.(problem.id)}
+                style={{ marginRight: 8 }}
+              />
+            )}
             <Checkbox
               checked={!!problem.completed}
               onChange={() => handleToggle(problem.id)}

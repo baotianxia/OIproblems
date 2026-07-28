@@ -162,6 +162,7 @@ export default function MarkdownImport({ visible, onClose, selectedNode, onImpor
     <Modal
       title="导入"
       open={visible}
+      maskClosable={false}
       autoFocus={false}
       onOk={handleOk}
       onCancel={handleCancel}

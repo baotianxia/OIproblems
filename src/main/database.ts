@@ -55,6 +55,13 @@ function createTables(): void {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS operation_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      description TEXT NOT NULL,
+      snapshot TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `)
 
   const cols = db.prepare("PRAGMA table_info('sheets')").all() as any[]

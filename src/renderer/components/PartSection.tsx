@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Typography, Button, Input, Modal, message, Popconfirm, theme } from 'antd'
+import { Typography, Button, Input, Modal, message, Popconfirm, Checkbox, theme } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { submitOnEnter } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
@@ -16,9 +16,14 @@ interface Props {
   onHighlightDone?: () => void
   highlightKey?: number
   onSelect?: (partId: number, partTitle: string) => void
+  selectMode?: boolean
+  partSelected?: boolean
+  selectedProblemIds?: Set<number>
+  onTogglePart?: (partId: number) => void
+  onToggleProblem?: (problemId: number) => void
 }
 
-export default function PartSection({ part, onRefresh, onAddProblem, selected, highlighted, domRef, highlightedProblemId, onHighlightDone, highlightKey, onSelect }: Props): JSX.Element {
+export default function PartSection({ part, onRefresh, onAddProblem, selected, highlighted, domRef, highlightedProblemId, onHighlightDone, highlightKey, onSelect, selectMode, partSelected, selectedProblemIds, onTogglePart, onToggleProblem }: Props): JSX.Element {
   const { token } = theme.useToken()
   const [collapsed, setCollapsed] = useState(false)
   const rate = part.totalProblems > 0
@@ -67,6 +72,13 @@ export default function PartSection({ part, onRefresh, onAddProblem, selected, h
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        {selectMode && (
+          <Checkbox
+            checked={partSelected}
+            onChange={() => onTogglePart?.(part.id)}
+            style={{ marginRight: 8 }}
+          />
+        )}
         <div
           style={{ cursor: 'pointer', userSelect: 'none', flex: 1 }}
           onClick={() => setCollapsed(!collapsed)}
@@ -89,7 +101,7 @@ export default function PartSection({ part, onRefresh, onAddProblem, selected, h
         </div>
       </div>
       {!collapsed && (
-        <ProblemList problems={part.problems} onRefresh={onRefresh} highlightedId={highlightedProblemId} onHighlightDone={onHighlightDone} highlightKey={highlightKey} />
+        <ProblemList problems={part.problems} onRefresh={onRefresh} highlightedId={highlightedProblemId} onHighlightDone={onHighlightDone} highlightKey={highlightKey} selectMode={selectMode} selectedIds={selectedProblemIds} onToggleSelect={onToggleProblem} />
       )}
     </div>
   )

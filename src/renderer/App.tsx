@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ConfigProvider, theme, Layout, Typography, Spin, Button, message, Modal, Space, Switch } from 'antd'
-import { FolderAddOutlined, OrderedListOutlined, ImportOutlined, ExportOutlined, SunOutlined, MoonOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { FolderAddOutlined, OrderedListOutlined, ImportOutlined, ExportOutlined, SunOutlined, MoonOutlined, ThunderboltOutlined, HistoryOutlined } from '@ant-design/icons'
 import { submitOnEnter } from './utils'
 import { AutoFocusInput } from './components/AutoFocusInput'
 import { AppProvider, useAppContext } from './context/AppContext'
@@ -9,6 +9,7 @@ import SheetContent from './components/SheetContent'
 import FolderContent from './components/FolderContent'
 import SearchPanel from './components/SearchPanel'
 import MarkdownImport from './components/MarkdownImport'
+import OperationLog from './components/OperationLog'
 
 const { Sider, Content } = Layout
 
@@ -17,6 +18,7 @@ function AppLayout(): JSX.Element {
   const { token } = theme.useToken()
   const [initialLoading, setInitialLoading] = useState(true)
   const [mdImportVisible, setMdImportVisible] = useState(false)
+  const [opLogVisible, setOpLogVisible] = useState(false)
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null)
 
   const loadGlobalStats = useCallback(async () => {
@@ -187,6 +189,7 @@ function AppLayout(): JSX.Element {
             </div>
             <Space direction="vertical" size={4} align="end">
               <Button size="small" icon={<ExportOutlined />} onClick={handleExport}>导出</Button>
+              <Button size="small" icon={<HistoryOutlined />} onClick={() => setOpLogVisible(true)}>日志</Button>
               <Switch
                 checkedChildren={<MoonOutlined />}
                 unCheckedChildren={<SunOutlined />}
@@ -222,6 +225,7 @@ function AppLayout(): JSX.Element {
         selectedNode={selectedNode}
         onImported={() => { refreshTree(); bumpDataVersion(); setMdImportVisible(false); loadGlobalStats() }}
       />
+      <OperationLog visible={opLogVisible} onClose={() => setOpLogVisible(false)} />
     </Layout>
   )
 }

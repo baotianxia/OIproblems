@@ -129,10 +129,16 @@ export interface ImportParams {
 function getPlacementText(selectedNode: SelectedNode | null, params?: ImportParams, error?: string): string {
   if (error) return ''
   if (params?.activePartId) {
-    if (selectedNode?.partName) return `将在"${selectedNode.name}"的"${selectedNode.partName}"中创建`
+    if (selectedNode?.partName) {
+      if (selectedNode.name) return `将在"${selectedNode.name}"的"${selectedNode.partName}"中创建`
+      return `将在"${selectedNode.partName}"中创建`
+    }
     return `将在"${selectedNode?.name ?? ''}"的 Part 中创建`
   }
-  if (params?.sheetId) return `将在题单"${selectedNode?.name ?? ''}"中创建`
+  if (params?.sheetId) {
+    if (selectedNode?.name) return `将在题单"${selectedNode.name}"中创建`
+    return '将在题单中创建'
+  }
   if (selectedNode?.type === 'folder') return `将在"${selectedNode.name}"下创建`
   return '将在根目录下创建'
 }

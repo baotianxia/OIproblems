@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { getScrollPos, setScrollPos } from './scrollCache'
-import { Typography, Card, Space, Spin, Empty, Button, Modal, Input, message, Dropdown } from 'antd'
+import { Typography, Card, Space, Spin, Empty, Button, Modal, Input, message, Dropdown, Checkbox } from 'antd'
 import type { MenuProps } from 'antd'
-import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined, SelectOutlined, DeleteOutlined, CheckSquareOutlined } from '@ant-design/icons'
 import { renderMarkdown, submitOnEnter, handleLinkPaste } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 import { useAppContext } from '../context/AppContext'
@@ -18,7 +18,10 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<GlobalStats | null>(null)
-  const { selectNode, refreshTree, treeVersion, dataVersion, isDark } = useAppContext()
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedFolderIds, setSelectedFolderIds] = useState<Set<number>>(new Set())
+  const [selectedSheetIds, setSelectedSheetIds] = useState<Set<number>>(new Set())
+  const { selectNode, refreshTree, treeVersion, dataVersion, isDark, bumpDataVersion } = useAppContext()
 
   const handleRandomProblem = async () => {
     const result = await window.api.problem.randomFromContext({ folderId })
@@ -55,6 +58,12 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useEffect(() => {
+    setSelectMode(false)
+    setSelectedFolderIds(new Set())
+    setSelectedSheetIds(new Set())
+  }, [folderId])
 
   const scrollPosRef = useRef(0)
   useLayoutEffect(() => {
@@ -189,6 +198,43 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     })
   }
 
+  const handleBatchDelete = async () => {
+    const total = selectedFolderIds.size + selectedSheetIds.size
+    if (total === 0) { message.info('未选择任何内容'); return }
+    Modal.confirm({
+      title: '确认批量删除',
+      content: `将删除 ${selectedFolderIds.size} 个文件夹和 ${selectedSheetIds.size} 个题单，不可恢复。`,
+      okText: '删除',
+      okType: 'danger',
+      onOk: async () => {
+        const snapshot: any[] = []
+        if (selectedFolderIds.size > 0) {
+          for (const fid of selectedFolderIds) {
+            const f = subFolders.find(x => x.id === fid)
+            if (f) snapshot.push({ table: 'folders', data: { id: f.id, name: f.name, description: f.description, parent_id: f.parent_id, sort_order: 0 } })
+          }
+          await window.api.folder.batchDelete({ ids: [...selectedFolderIds] })
+        }
+        if (selectedSheetIds.size > 0) {
+          for (const sid of selectedSheetIds) {
+            const s = sheets.find(x => x.id === sid)
+            if (s) snapshot.push({ table: 'sheets', data: { id: s.id, name: s.name, description: s.description, folder_id: s.folder_id, sort_order: 0 } })
+          }
+          await window.api.sheet.batchDelete({ ids: [...selectedSheetIds] })
+        }
+        if (snapshot.length > 0) {
+          await window.api.operation.log({ description: `批量删除了 ${snapshot.length} 项内容`, snapshot })
+        }
+        message.success('已删除')
+        setSelectedFolderIds(new Set())
+        setSelectedSheetIds(new Set())
+        bumpDataVersion()
+        await refreshTree()
+        await loadData()
+      }
+    })
+  }
+
   if (loading) return <Spin style={{ display: 'block', marginTop: 100 }} />
 
   const renderStats = () => {
@@ -223,6 +269,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
         </Typography.Title>
         <Space>
           <Button size="small" icon={<ThunderboltOutlined />} onClick={handleRandomProblem}>随机跳题</Button>
+          <Button size="small" icon={<SelectOutlined />} type={selectMode ? 'primary' : 'default'} onClick={() => { setSelectMode(v => !v); setSelectedFolderIds(new Set()); setSelectedSheetIds(new Set()) }}>选择</Button>
           <Button type="text" size="small" icon={<EditOutlined />} onClick={handleEditDescription}>编辑描述</Button>
         </Space>
       </div>
@@ -240,13 +287,17 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
               ]
               return (
                 <Dropdown key={f.id} menu={{ items: folderMenuItems }} trigger={['contextMenu']}>
-                  <Card
-                    hoverable
-                    size="small"
-                    style={{ width: 180 }}
-                    onClick={() => selectNode({ id: f.id, type: 'folder', name: f.name })}
-                  >
-                    <FolderOutlined /> {f.name}
+                  <Card hoverable size="small" style={{ width: selectMode ? 200 : 180 }}>
+                    {selectMode && (
+                      <Checkbox
+                        checked={selectedFolderIds.has(f.id)}
+                        onChange={() => setSelectedFolderIds(prev => { const n = new Set(prev); n.has(f.id) ? n.delete(f.id) : n.add(f.id); return n })}
+                        style={{ marginRight: 4 }}
+                      />
+                    )}
+                    <span onClick={() => { if (!selectMode) selectNode({ id: f.id, type: 'folder', name: f.name }) }} style={{ cursor: selectMode ? 'default' : 'pointer' }}>
+                      <FolderOutlined /> {f.name}
+                    </span>
                   </Card>
                 </Dropdown>
               )
@@ -266,13 +317,17 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
               ]
               return (
                 <Dropdown key={s.id} menu={{ items: sheetMenuItems }} trigger={['contextMenu']}>
-                  <Card
-                    hoverable
-                    size="small"
-                    style={{ width: 180 }}
-                    onClick={() => selectNode({ id: s.id, type: 'sheet', name: s.name })}
-                  >
-                    <OrderedListOutlined /> {s.name}
+                  <Card hoverable size="small" style={{ width: selectMode ? 200 : 180 }}>
+                    {selectMode && (
+                      <Checkbox
+                        checked={selectedSheetIds.has(s.id)}
+                        onChange={() => setSelectedSheetIds(prev => { const n = new Set(prev); n.has(s.id) ? n.delete(s.id) : n.add(s.id); return n })}
+                        style={{ marginRight: 4 }}
+                      />
+                    )}
+                    <span onClick={() => { if (!selectMode) selectNode({ id: s.id, type: 'sheet', name: s.name }) }} style={{ cursor: selectMode ? 'default' : 'pointer' }}>
+                      <OrderedListOutlined /> {s.name}
+                    </span>
                   </Card>
                 </Dropdown>
               )
@@ -283,6 +338,16 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
 
       {subFolders.length === 0 && sheets.length === 0 && (
         <Empty description="空文件夹" style={{ marginTop: 60 }} />
+      )}
+
+      {selectMode && (
+        <div style={{ position: 'sticky', bottom: 0, zIndex: 10, background: isDark ? '#1f1f1f' : '#fff', borderTop: `1px solid ${isDark ? '#333' : '#d9d9d9'}`, padding: '8px 16px', marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+          <Space>
+            <Button size="small" icon={<CheckSquareOutlined />} onClick={() => { subFolders.forEach(f => setSelectedFolderIds(prev => new Set(prev).add(f.id))); sheets.forEach(s => setSelectedSheetIds(prev => new Set(prev).add(s.id))) }}>全选</Button>
+            <Button size="small" onClick={() => { setSelectedFolderIds(new Set()); setSelectedSheetIds(new Set()) }}>取消选择</Button>
+            <Button size="small" danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>删除</Button>
+          </Space>
+        </div>
       )}
     </div>
   )
