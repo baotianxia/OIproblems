@@ -76,6 +76,7 @@ export default function PartSection({ part, onRefresh, onAddProblem, selected, h
           <Checkbox
             checked={partSelected}
             onChange={() => onTogglePart?.(part.id)}
+            className={selectMode ? 'select-mode' : ''}
             style={{ marginRight: 8 }}
           />
         )}

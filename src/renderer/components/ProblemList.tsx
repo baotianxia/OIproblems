@@ -107,7 +107,13 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
   }
 
   return (
-    <List
+    <>
+      <style>{`
+        .select-mode .ant-checkbox-inner { border-color: #fa8c16; }
+        .select-mode.ant-checkbox-checked .ant-checkbox-inner { background-color: #fa8c16; border-color: #fa8c16; }
+        .select-mode.ant-checkbox-checked .ant-checkbox-inner::after { border-color: #fff; }
+      `}</style>
+      <List
       dataSource={problems}
       renderItem={(problem, index) => {
         const isHighlighted = highlightedId === problem.id
@@ -183,17 +189,10 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
               </Popconfirm>
             ].filter(Boolean)}
           >
-            {selectMode && (
-              <Checkbox
-                key="select"
-                checked={selectedIds?.has(problem.id)}
-                onChange={() => onToggleSelect?.(problem.id)}
-                style={{ marginRight: 8 }}
-              />
-            )}
             <Checkbox
-              checked={!!problem.completed}
-              onChange={() => handleToggle(problem.id)}
+              checked={selectMode ? (selectedIds?.has(problem.id) ?? false) : !!problem.completed}
+              onChange={() => selectMode ? onToggleSelect?.(problem.id) : handleToggle(problem.id)}
+              className={selectMode ? 'select-mode' : ''}
               style={{ textDecoration: problem.completed ? 'line-through' : 'none', color: problem.completed ? token.colorTextTertiary : undefined }}
             >
               {renderMarkdown(problem.name, isDark)}
@@ -202,5 +201,6 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
         )
       }}
     />
+    </>
   )
 }
