@@ -43,6 +43,13 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     }
   }, [highlightProblemId, highlightKey])
 
+  useEffect(() => {
+    if (!data || activePartId == null) return
+    if (!data.parts.some(p => p.id === activePartId)) {
+      selectNode({ id: sheetId, type: 'sheet', name: data.sheet.name, folderId: data.sheet.folder_id })
+    }
+  }, [data])
+
   const lastScrolledPartRef = useRef<number>()
   useEffect(() => {
     if (!data || !activePartId || !partRefs.current[activePartId]) return
