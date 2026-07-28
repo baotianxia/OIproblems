@@ -180,24 +180,20 @@ function AppLayout(): JSX.Element {
 
   return (
     <Layout style={{ height: '100vh', background: token.colorBgContainer }}>
-      <Sider width={320} style={{ background: token.colorBgContainer, borderRight: `1px solid ${token.colorBorderSecondary}`, overflow: 'auto', minHeight: 0 }}>
-        <div style={{ minHeight: '100%', background: token.colorBgContainer }} onClick={() => selectNode(null)}>
+      <Sider width={320} style={{ background: token.colorBgContainer, borderRight: `1px solid ${token.colorBorderSecondary}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'auto', background: token.colorBgContainer }} onClick={() => selectNode(null)}>
           <div style={{ padding: '16px', borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }} onClick={e => e.stopPropagation()}>
             <div>
               <Typography.Title level={5} style={{ margin: 0, cursor: 'pointer' }} onClick={() => selectNode(null)}>TODO列表</Typography.Title>
               {renderGlobalStats()}
             </div>
-            <Space direction="vertical" size={4} align="end">
-              <Button size="small" icon={<ExportOutlined />} onClick={handleExport}>导出</Button>
-              <Button size="small" icon={<HistoryOutlined />} onClick={() => setOpLogVisible(true)}>日志</Button>
-              <Switch
-                checkedChildren={<MoonOutlined />}
-                unCheckedChildren={<SunOutlined />}
-                checked={isDark}
-                onChange={toggleTheme}
-                size="small"
-              />
-            </Space>
+            <Switch
+              checkedChildren={<MoonOutlined />}
+              unCheckedChildren={<SunOutlined />}
+              checked={isDark}
+              onChange={toggleTheme}
+              size="small"
+            />
           </div>
           <div style={{ padding: '8px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }} onClick={e => e.stopPropagation()}>
             <Space size={4}>
@@ -208,6 +204,10 @@ function AppLayout(): JSX.Element {
           </div>
           <div onClick={e => e.stopPropagation()}><SearchPanel /></div>
           <div onClick={e => e.stopPropagation()}><DirectoryTree /></div>
+        </div>
+        <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, background: token.colorBgContainer, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+          <Button size="small" icon={<ExportOutlined />} onClick={handleExport}>导出</Button>
+          <Button size="small" icon={<HistoryOutlined />} onClick={() => setOpLogVisible(true)}>日志</Button>
         </div>
       </Sider>
       <Layout style={{ minHeight: 0, background: token.colorBgContainer }}>
