@@ -109,9 +109,9 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
   return (
     <>
       <style>{`
-        .select-mode .ant-checkbox-inner { border-color: #fa8c16; }
-        .select-mode.ant-checkbox-checked .ant-checkbox-inner { background-color: #fa8c16; border-color: #fa8c16; }
-        .select-mode.ant-checkbox-checked .ant-checkbox-inner::after { border-color: #fff; }
+        .select-mode .ant-checkbox-inner { border-color: #fa8c16 !important; }
+        .select-mode.ant-checkbox-wrapper-checked .ant-checkbox-inner { background-color: #fa8c16 !important; border-color: #fa8c16 !important; }
+        .select-mode.ant-checkbox-wrapper-checked .ant-checkbox-inner::after { border-color: #fff !important; }
       `}</style>
       <List
       dataSource={problems}
