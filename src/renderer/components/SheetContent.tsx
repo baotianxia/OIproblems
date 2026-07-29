@@ -31,7 +31,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
   const loadData = useCallback(async () => {
     const result = await window.api.sheet.getById({ id: sheetId })
     setData(result)
-  }, [sheetId, dataVersion, treeVersion])
+  }, [sheetId])
 
   useEffect(() => {
     loadData()
