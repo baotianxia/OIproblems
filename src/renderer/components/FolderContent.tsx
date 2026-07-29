@@ -226,6 +226,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
           await window.api.operation.log({ description: `批量删除了 ${snapshot.length} 项内容`, snapshot })
         }
         message.success('已删除')
+        setSelectMode(false)
         setSelectedFolderIds(new Set())
         setSelectedSheetIds(new Set())
         bumpDataVersion()

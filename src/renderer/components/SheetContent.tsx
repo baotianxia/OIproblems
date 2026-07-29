@@ -188,10 +188,12 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
       return
     }
     await window.api.problem.batchSetCompleted({ ids: [...selectedProblemIds], completed })
+    setSelectMode(false)
+    handleDeselectAll()
     bumpDataVersion()
     message.success(completed ? '已设为完成' : '已设为未完成')
     await loadData()
-  }, [selectedProblemIds, bumpDataVersion, loadData])
+  }, [selectedProblemIds, bumpDataVersion, loadData, handleDeselectAll])
 
   const handleBatchDelete = useCallback(async () => {
     const total = selectedPartIds.size + selectedProblemIds.size
@@ -225,6 +227,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
           await window.api.operation.log({ description: `批量删除了 ${snapshot.length} 项内容`, snapshot })
         }
         message.success('已删除')
+        setSelectMode(false)
         handleDeselectAll()
         bumpDataVersion()
         await loadData()
