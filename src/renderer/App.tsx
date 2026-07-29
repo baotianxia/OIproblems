@@ -180,34 +180,36 @@ function AppLayout(): JSX.Element {
 
   return (
     <Layout style={{ height: '100vh', background: token.colorBgContainer }}>
-      <Sider width={320} style={{ background: token.colorBgContainer, borderRight: `1px solid ${token.colorBorderSecondary}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflow: 'auto', background: token.colorBgContainer }} onClick={() => selectNode(null)}>
-          <div style={{ padding: '16px', borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }} onClick={e => e.stopPropagation()}>
-            <div>
-              <Typography.Title level={5} style={{ margin: 0, cursor: 'pointer' }} onClick={() => selectNode(null)}>TODO列表</Typography.Title>
-              {renderGlobalStats()}
+      <Sider width={320} style={{ background: token.colorBgContainer, borderRight: `1px solid ${token.colorBorderSecondary}` }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+          <div style={{ flex: 1, overflow: 'auto', background: token.colorBgContainer }} onClick={() => selectNode(null)}>
+            <div style={{ padding: '16px', borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }} onClick={e => e.stopPropagation()}>
+              <div>
+                <Typography.Title level={5} style={{ margin: 0, cursor: 'pointer' }} onClick={() => selectNode(null)}>TODO列表</Typography.Title>
+                {renderGlobalStats()}
+              </div>
+              <Switch
+                checkedChildren={<MoonOutlined />}
+                unCheckedChildren={<SunOutlined />}
+                checked={isDark}
+                onChange={toggleTheme}
+                size="small"
+              />
             </div>
-            <Switch
-              checkedChildren={<MoonOutlined />}
-              unCheckedChildren={<SunOutlined />}
-              checked={isDark}
-              onChange={toggleTheme}
-              size="small"
-            />
+            <div style={{ padding: '8px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }} onClick={e => e.stopPropagation()}>
+              <Space size={4}>
+                <Button size="small" icon={<FolderAddOutlined />} onClick={handleNewFolder}>新建文件夹</Button>
+                <Button size="small" icon={<OrderedListOutlined />} onClick={handleNewSheet}>新建题单</Button>
+                <Button size="small" icon={<ImportOutlined />} onClick={() => setMdImportVisible(true)}>导入</Button>
+              </Space>
+            </div>
+            <div onClick={e => e.stopPropagation()}><SearchPanel /></div>
+            <div onClick={e => e.stopPropagation()}><DirectoryTree /></div>
           </div>
-          <div style={{ padding: '8px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }} onClick={e => e.stopPropagation()}>
-            <Space size={4}>
-              <Button size="small" icon={<FolderAddOutlined />} onClick={handleNewFolder}>新建文件夹</Button>
-              <Button size="small" icon={<OrderedListOutlined />} onClick={handleNewSheet}>新建题单</Button>
-              <Button size="small" icon={<ImportOutlined />} onClick={() => setMdImportVisible(true)}>导入</Button>
-            </Space>
+          <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, background: token.colorBgContainer, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+            <Button size="small" icon={<ExportOutlined />} onClick={handleExport}>导出</Button>
+            <Button size="small" icon={<HistoryOutlined />} onClick={() => setOpLogVisible(true)}>日志</Button>
           </div>
-          <div onClick={e => e.stopPropagation()}><SearchPanel /></div>
-          <div onClick={e => e.stopPropagation()}><DirectoryTree /></div>
-        </div>
-        <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, background: token.colorBgContainer, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-          <Button size="small" icon={<ExportOutlined />} onClick={handleExport}>导出</Button>
-          <Button size="small" icon={<HistoryOutlined />} onClick={() => setOpLogVisible(true)}>日志</Button>
         </div>
       </Sider>
       <Layout style={{ minHeight: 0, background: token.colorBgContainer }}>
