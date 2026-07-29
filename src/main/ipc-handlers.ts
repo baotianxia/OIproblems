@@ -359,11 +359,21 @@ export function registerIpcHandlers(): void {
       folderMap.get(pk)!.push(f)
     }
 
+    function renderDescription(desc: string, baseMd: string): string {
+      if (!desc) return baseMd
+      const descLines = desc.split('\n')
+      for (const dl of descLines) {
+        baseMd += `> ${dl}\n`
+      }
+      return baseMd + '\n'
+    }
+
     function renderFolders(parentId: number | null, level: number): void {
       const children = folderMap.get(parentId ?? 0) ?? []
       for (const folder of children) {
         const h = '#'.repeat(Math.max(1, level + 1))
-        md += `${h} ${folder.name}\n\n`
+        md += `${h} ${folder.name}\n`
+        md = renderDescription(folder.description || '', md)
         renderSheetsInFolder(folder.id, level + 1)
         renderFolders(folder.id, level + 1)
       }
@@ -373,7 +383,8 @@ export function registerIpcHandlers(): void {
       const sheetList = sheets.filter(s => (s.folder_id ?? 0) === (folderId ?? 0))
       for (const sheet of sheetList) {
         const h = '#'.repeat(baseLevel + 1)
-        md += `${h} ${sheet.name}\n\n`
+        md += `${h} ${sheet.name}\n`
+        md = renderDescription(sheet.description || '', md)
         const sp = partsList.filter(p => p.sheet_id === sheet.id)
         if (sp.length > 0) {
           for (const part of sp) {
@@ -436,14 +447,35 @@ export function registerIpcHandlers(): void {
     let currentFolderId: number | null = targetFolderId ?? null
     let currentSheetId: number | null = sheetId ?? null
     let currentPartId: number | null = activePartId ?? null
+    let currentDescription = ''
+    let lastEntityType: 'folder' | 'sheet' | null = null
+    let lastEntityId: number | null = null
+
+    const flushDescription = (): void => {
+      if (!currentDescription) return
+      const desc = currentDescription.trim()
+      if (lastEntityType === 'folder' && lastEntityId != null) {
+        db.prepare('UPDATE folders SET description = ? WHERE id = ?').run(desc, lastEntityId)
+      } else if (lastEntityType === 'sheet' && lastEntityId != null) {
+        db.prepare('UPDATE sheets SET description = ? WHERE id = ?').run(desc, lastEntityId)
+      }
+      currentDescription = ''
+    }
 
     const transaction = db.transaction(() => {
       for (const rawLine of lines) {
         const line = rawLine.trimEnd()
         if (!line.trim()) continue
 
+        const blockquoteMatch = line.match(/^>\s?(.*)/)
+        if (blockquoteMatch) {
+          currentDescription += (currentDescription ? '\n' : '') + blockquoteMatch[1]
+          continue
+        }
+
         const headingMatch = line.match(/^(#{1,3})\s+(.+)/)
         if (headingMatch) {
+          flushDescription()
           const level = headingMatch[1].length
           const title = headingMatch[2].trim()
 
@@ -463,6 +495,8 @@ export function registerIpcHandlers(): void {
               }
             }
             currentFolderId = parentId
+            lastEntityType = 'folder'
+            lastEntityId = currentFolderId
             if (hasH2) { currentSheetId = null; currentPartId = null }
           } else if (level === 2) {
             if (currentFolderId === null) {
@@ -480,6 +514,8 @@ export function registerIpcHandlers(): void {
               const ins = db.prepare('INSERT INTO sheets (name, folder_id) VALUES (?, ?)').run(title, currentFolderId)
               currentSheetId = Number(ins.lastInsertRowid)
             }
+            lastEntityType = 'sheet'
+            lastEntityId = currentSheetId
             if (hasH3) currentPartId = null
           } else if (level === 3) {
             if (currentSheetId === null) continue
@@ -518,6 +554,7 @@ export function registerIpcHandlers(): void {
           0
         )
       }
+      flushDescription()
     })
     transaction()
     return { success: true }

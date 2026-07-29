@@ -4,6 +4,7 @@ export interface PreviewItem {
   id: string
   title: string
   type: 'folder' | 'sheet' | 'part' | 'problem'
+  description?: string
   children?: PreviewItem[]
 }
 
@@ -40,16 +41,33 @@ export function parseMarkdownToTree(
   let currentSheet: PreviewItem | null = null
   let currentPart: PreviewItem | null = null
   let inFolder = false
+  let currentDescription = ''
 
   const hasH2 = lines.some(l => /^##[^#]/.test(l.trim()))
+
+  const flushDescription = (): void => {
+    if (!currentDescription) return
+    const desc = currentDescription.trim()
+    if (currentPart) currentPart.description = desc
+    else if (currentSheet) currentSheet.description = desc
+    else if (currentFolder) currentFolder.description = desc
+    currentDescription = ''
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const rawLine = lines[i]
     const line = rawLine.trimEnd()
     if (!line.trim()) continue
 
+    const blockquoteMatch = line.match(/^>\s?(.*)/)
+    if (blockquoteMatch) {
+      currentDescription += (currentDescription ? '\n' : '') + blockquoteMatch[1]
+      continue
+    }
+
     const headingMatch = line.match(/^(#{1,3})\s+(.+)/)
     if (headingMatch) {
+      flushDescription()
       const level = headingMatch[1].length
       const title = headingMatch[2].trim()
       inFolder = false
@@ -116,6 +134,8 @@ export function parseMarkdownToTree(
     if (currentPart) currentPart.children!.push(problem)
     else currentSheet!.children!.push(problem)
   }
+
+  flushDescription()
 
   return { tree: root, folderCount, sheetCount, partCount, problemCount, hasFolders: folderCount > 0, hasSheets: sheetCount > 0, hasParts: partCount > 0, warnings }
 }
