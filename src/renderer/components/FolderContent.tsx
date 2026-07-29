@@ -341,7 +341,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
       )}
 
       {selectMode && (
-        <div style={{ position: 'sticky', bottom: 0, zIndex: 10, background: isDark ? '#1f1f1f' : '#fff', borderTop: `1px solid ${isDark ? '#333' : '#d9d9d9'}`, padding: '8px 16px', marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 1000, background: isDark ? '#1f1f1f' : '#fff', border: `1px solid ${isDark ? '#333' : '#d9d9d9'}`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', padding: '8px 16px', display: 'flex', justifyContent: 'flex-end' }}>
           <Space>
             <Button size="small" icon={<CheckSquareOutlined />} onClick={() => { subFolders.forEach(f => setSelectedFolderIds(prev => new Set(prev).add(f.id))); sheets.forEach(s => setSelectedSheetIds(prev => new Set(prev).add(s.id))) }}>全选</Button>
             <Button size="small" onClick={() => { setSelectedFolderIds(new Set()); setSelectedSheetIds(new Set()) }}>取消选择</Button>
