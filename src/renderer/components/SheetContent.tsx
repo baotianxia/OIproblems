@@ -371,6 +371,9 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
 
   return (
     <div>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, float: 'right', marginTop: 4 }}>
+        <Button icon={<SelectOutlined />} type={selectMode ? 'primary' : 'default'} onClick={() => { setSelectMode(v => !v); handleDeselectAll() }}>选择</Button>
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -386,7 +389,6 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
         <Space>
           <Button icon={<ThunderboltOutlined />} onClick={handleRandomProblem}>随机跳题</Button>
           <Button icon={<ImportOutlined />} onClick={() => setMdVisible(true)}>导入</Button>
-          <Button icon={<SelectOutlined />} type={selectMode ? 'primary' : 'default'} onClick={() => { setSelectMode(v => !v); handleDeselectAll() }}>选择</Button>
           <Button icon={<PlusOutlined />} onClick={handleAddPart}>新建 Part</Button>
           <Button icon={<PlusOutlined />} onClick={handleAddDirectProblem}>新建题目</Button>
         </Space>
@@ -430,7 +432,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
       ) : null}
 
       {selectMode && (
-        <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 1000, background: isDark ? '#1f1f1f' : '#fff', border: `1px solid ${isDark ? '#333' : '#d9d9d9'}`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', padding: '8px 16px', display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ position: 'sticky', bottom: 0, zIndex: 10, background: isDark ? '#1f1f1f' : '#fff', borderTop: `1px solid ${isDark ? '#333' : '#d9d9d9'}`, padding: '8px 16px', marginTop: 16, display: 'flex', justifyContent: 'center' }}>
           <Space>
             <Button size="small" icon={<CheckSquareOutlined />} onClick={handleSelectAll}>全选</Button>
             <Button size="small" onClick={handleDeselectAll}>取消选择</Button>

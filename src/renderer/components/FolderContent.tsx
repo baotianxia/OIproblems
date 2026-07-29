@@ -263,13 +263,15 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
 
   return (
     <div>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, float: 'right', marginTop: 4 }}>
+        <Button size="small" icon={<SelectOutlined />} type={selectMode ? 'primary' : 'default'} onClick={() => { setSelectMode(v => !v); setSelectedFolderIds(new Set()); setSelectedSheetIds(new Set()) }}>选择</Button>
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           <FolderOutlined /> {folderName}
         </Typography.Title>
         <Space>
           <Button size="small" icon={<ThunderboltOutlined />} onClick={handleRandomProblem}>随机跳题</Button>
-          <Button size="small" icon={<SelectOutlined />} type={selectMode ? 'primary' : 'default'} onClick={() => { setSelectMode(v => !v); setSelectedFolderIds(new Set()); setSelectedSheetIds(new Set()) }}>选择</Button>
           <Button type="text" size="small" icon={<EditOutlined />} onClick={handleEditDescription}>编辑描述</Button>
         </Space>
       </div>
@@ -341,7 +343,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
       )}
 
       {selectMode && (
-        <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 1000, background: isDark ? '#1f1f1f' : '#fff', border: `1px solid ${isDark ? '#333' : '#d9d9d9'}`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', padding: '8px 16px', display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ position: 'sticky', bottom: 0, zIndex: 10, background: isDark ? '#1f1f1f' : '#fff', borderTop: `1px solid ${isDark ? '#333' : '#d9d9d9'}`, padding: '8px 16px', marginTop: 16, display: 'flex', justifyContent: 'center' }}>
           <Space>
             <Button size="small" icon={<CheckSquareOutlined />} onClick={() => { subFolders.forEach(f => setSelectedFolderIds(prev => new Set(prev).add(f.id))); sheets.forEach(s => setSelectedSheetIds(prev => new Set(prev).add(s.id))) }}>全选</Button>
             <Button size="small" onClick={() => { setSelectedFolderIds(new Set()); setSelectedSheetIds(new Set()) }}>取消选择</Button>
