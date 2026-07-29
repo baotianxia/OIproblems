@@ -192,7 +192,7 @@ export default function MarkdownImport({ visible, onClose, selectedNode, onImpor
         }
       />
       {preview && (
-        <div style={{ marginTop: 12, border: '1px solid #d9d9d9', borderRadius: 6, padding: '8px 12px' }}>
+        <div style={{ marginTop: 12, border: '1px solid #d9d9d9', borderRadius: 6, padding: '8px 12px', maxHeight: 320, overflow: 'auto' }}>
           <Typography.Text strong style={{ fontSize: 13 }}>
             预览：{preview.folderCount > 0 ? `${preview.folderCount} 个文件夹 │ ` : ''}{preview.sheetCount > 0 ? `${preview.sheetCount} 个题单 │ ` : ''}{preview.partCount > 0 ? `${preview.partCount} 个 Part │ ` : ''}{preview.problemCount} 道题目
           </Typography.Text>
