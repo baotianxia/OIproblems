@@ -290,7 +290,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
               ]
               return (
                 <Dropdown key={f.id} menu={{ items: folderMenuItems }} trigger={['contextMenu']}>
-                  <Card hoverable size="small" style={{ width: selectMode ? 200 : 180 }}>
+                  <Card hoverable size="small" style={{ width: selectMode ? 200 : 180 }} onClick={() => { if (!selectMode) selectNode({ id: f.id, type: 'folder', name: f.name }) }}>
                     {selectMode && (
                       <Checkbox
                         checked={selectedFolderIds.has(f.id)}
@@ -298,7 +298,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                         style={{ marginRight: 4 }}
                       />
                     )}
-                    <span onClick={() => { if (!selectMode) selectNode({ id: f.id, type: 'folder', name: f.name }) }} style={{ cursor: selectMode ? 'default' : 'pointer' }}>
+                    <span style={{ cursor: selectMode ? 'default' : 'pointer' }}>
                       <FolderOutlined /> {f.name}
                     </span>
                   </Card>
@@ -320,7 +320,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
               ]
               return (
                 <Dropdown key={s.id} menu={{ items: sheetMenuItems }} trigger={['contextMenu']}>
-                  <Card hoverable size="small" style={{ width: selectMode ? 200 : 180 }}>
+                  <Card hoverable size="small" style={{ width: selectMode ? 200 : 180 }} onClick={() => { if (!selectMode) selectNode({ id: s.id, type: 'sheet', name: s.name }) }}>
                     {selectMode && (
                       <Checkbox
                         checked={selectedSheetIds.has(s.id)}
@@ -328,7 +328,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                         style={{ marginRight: 4 }}
                       />
                     )}
-                    <span onClick={() => { if (!selectMode) selectNode({ id: s.id, type: 'sheet', name: s.name }) }} style={{ cursor: selectMode ? 'default' : 'pointer' }}>
+                    <span style={{ cursor: selectMode ? 'default' : 'pointer' }}>
                       <OrderedListOutlined /> {s.name}
                     </span>
                   </Card>
