@@ -13,12 +13,17 @@ export function handleLinkPaste(e: React.ClipboardEvent<HTMLTextAreaElement | HT
   const doc = new DOMParser().parseFromString(html, 'text/html')
   const links = doc.querySelectorAll('a')
   if (links.length === 0) return
-  const link = links[0]
-  const url = link.href
-  const text = link.textContent || url
-  if (!url || url === text) return
+  const parts: string[] = []
+  for (const a of Array.from(links)) {
+    const url = a.href
+    const text = (a.textContent || '').trim() || url
+    if (!url || url === text) continue
+    parts.push(`[${text}](${url})`)
+  }
+  if (parts.length === 0) return
   e.preventDefault()
-  document.execCommand('insertText', false, `[${text}](${url})`)
+  const isTextArea = e.target instanceof HTMLTextAreaElement
+  document.execCommand('insertText', false, parts.join(isTextArea ? '\n' : ' '))
 }
 
 const linkRegex = /\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)]+)\)/g
