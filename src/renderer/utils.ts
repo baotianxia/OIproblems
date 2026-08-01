@@ -38,6 +38,7 @@ export function handleLinkPaste(e: React.ClipboardEvent<HTMLTextAreaElement | HT
   let text = htmlToMarkdown(doc.body)
   if (!text.trim()) return
   e.preventDefault()
+  text = mergeSameUrlLinks(text)
   const isTextArea = e.target instanceof HTMLTextAreaElement
   if (isTextArea) {
     text = text.replace(/\n{3,}/g, '\n\n').trim()
@@ -49,6 +50,63 @@ export function handleLinkPaste(e: React.ClipboardEvent<HTMLTextAreaElement | HT
 }
 
 const linkRegex = /\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)]+)\)/g
+
+interface LinkToken {
+  isLink: boolean
+  inner?: string
+  url?: string
+  text?: string
+}
+
+function mergeSameUrlLinks(text: string): string {
+  const tokens: LinkToken[] = []
+  const re = /\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)]+)\)/g
+  let last = 0
+  let m: RegExpExecArray | null = null
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) tokens.push({ isLink: false, text: text.slice(last, m.index) })
+    tokens.push({ isLink: true, inner: m[1], url: m[2] })
+    last = m.index + m[0].length
+  }
+  if (last < text.length) tokens.push({ isLink: false, text: text.slice(last) })
+
+  const out: string[] = []
+  let i = 0
+  while (i < tokens.length) {
+    const t = tokens[i]
+    if (!t.isLink || t.url == null) {
+      out.push(t.text ?? '')
+      i++
+      continue
+    }
+    const url = t.url
+    let inner = t.inner ?? ''
+    let j = i + 1
+    let merged = false
+    for (;;) {
+      let k = j
+      let ok = true
+      while (k < tokens.length && !tokens[k].isLink) {
+        if ((tokens[k].text ?? '').includes('\n')) { ok = false; break }
+        k++
+      }
+      if (!ok || k >= tokens.length) break
+      if (tokens[k].url !== url) break
+      for (let x = j; x < k; x++) inner += tokens[x].text
+      inner += tokens[k].inner
+      merged = true
+      j = k + 1
+    }
+    if (merged) {
+      out.push(`[${inner}](${url})`)
+      i = j
+    } else {
+      out.push(`[${t.inner}](${url})`)
+      i++
+    }
+  }
+  return out.join('')
+}
 
 export function renderMarkdown(text: string, isDark?: boolean): ReactNode {
   const linkColor = isDark ? '#64B5F6' : '#1565C0'
