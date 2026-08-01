@@ -7,23 +7,45 @@ export function submitOnEnter(e: { key: string }): void {
   btn?.click()
 }
 
+const BLOCK_TAGS = /^(DIV|P|LI|TR|TD|TH|SECTION|ARTICLE|UL|OL|BLOCKQUOTE|PRE|H[1-6])$/
+
+function htmlToMarkdown(node: Node): string {
+  let out = ''
+  if (node.nodeType === Node.TEXT_NODE) {
+    out += node.textContent ?? ''
+  } else if (node.nodeType === Node.ELEMENT_NODE) {
+    const el = node as Element
+    const tag = el.tagName
+    if (tag === 'A') {
+      const url = (el as HTMLAnchorElement).href
+      const text = (el.textContent || '').trim() || url
+      return url && url !== text ? `[${text}](${url})` : text
+    }
+    if (tag === 'BR') return '\n'
+    const isBlock = BLOCK_TAGS.test(tag)
+    if (isBlock && out && !out.endsWith('\n')) out += '\n'
+    for (const child of Array.from(el.childNodes)) out += htmlToMarkdown(child)
+    if (isBlock && out && !out.endsWith('\n')) out += '\n'
+  }
+  return out
+}
+
 export function handleLinkPaste(e: React.ClipboardEvent<HTMLTextAreaElement | HTMLInputElement>): void {
   const html = e.clipboardData.getData('text/html')
   if (!html) return
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  const links = doc.querySelectorAll('a')
-  if (links.length === 0) return
-  const parts: string[] = []
-  for (const a of Array.from(links)) {
-    const url = a.href
-    const text = (a.textContent || '').trim() || url
-    if (!url || url === text) continue
-    parts.push(`[${text}](${url})`)
-  }
-  if (parts.length === 0) return
+  if (!doc.querySelector('a')) return
+  let text = htmlToMarkdown(doc.body)
+  if (!text.trim()) return
   e.preventDefault()
   const isTextArea = e.target instanceof HTMLTextAreaElement
-  document.execCommand('insertText', false, parts.join(isTextArea ? '\n' : ' '))
+  if (isTextArea) {
+    text = text.replace(/\n{3,}/g, '\n\n').trim()
+  } else {
+    text = text.replace(/\s+/g, ' ').trim()
+  }
+  if (!text) return
+  document.execCommand('insertText', false, text)
 }
 
 const linkRegex = /\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)]+)\)/g
