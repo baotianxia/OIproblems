@@ -21,7 +21,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   const [selectMode, setSelectMode] = useState(false)
   const [selectedFolderIds, setSelectedFolderIds] = useState<Set<number>>(new Set())
   const [selectedSheetIds, setSelectedSheetIds] = useState<Set<number>>(new Set())
-  const { selectNode, refreshTree, treeVersion, dataVersion, isDark, bumpDataVersion } = useAppContext()
+  const { selectNode, refreshTree, isDark, bumpDataVersion, contentReloadSignal } = useAppContext()
 
   const handleRandomProblem = async () => {
     const result = await window.api.problem.randomFromContext({ folderId })
@@ -53,11 +53,11 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     } finally {
       setLoading(false)
     }
-  }, [folderId, treeVersion, dataVersion])
+  }, [folderId])
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+  }, [loadData, contentReloadSignal])
 
   useEffect(() => {
     setSelectMode(false)

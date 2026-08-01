@@ -25,7 +25,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
   const [selectMode, setSelectMode] = useState(false)
   const [selectedProblemIds, setSelectedProblemIds] = useState<Set<number>>(new Set())
   const [selectedPartIds, setSelectedPartIds] = useState<Set<number>>(new Set())
-  const { refreshTree, selectNode, dataVersion, treeVersion, isDark, selectedNode, bumpDataVersion } = useAppContext()
+  const { refreshTree, selectNode, isDark, selectedNode, bumpDataVersion, contentReloadSignal } = useAppContext()
   const partRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
   const loadData = useCallback(async () => {
@@ -35,7 +35,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+  }, [loadData, contentReloadSignal])
 
   useEffect(() => {
     if (highlightProblemId != null) {

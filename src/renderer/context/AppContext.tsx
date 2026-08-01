@@ -5,6 +5,7 @@ interface AppState {
   selectedNode: SelectedNode | null
   treeVersion: number
   dataVersion: number
+  contentReloadSignal: number
   isDark: boolean
 }
 
@@ -12,6 +13,7 @@ interface AppContextType extends AppState {
   selectNode: (node: SelectedNode | null) => void
   refreshTree: () => Promise<void>
   bumpDataVersion: () => void
+  bumpContentReload: () => void
   toggleTheme: () => void
 }
 
@@ -21,6 +23,7 @@ export function AppProvider({ children }: { children: ReactNode }): JSX.Element 
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null)
   const [treeVersion, setTreeVersion] = useState(0)
   const [dataVersion, setDataVersion] = useState(0)
+  const [contentReloadSignal, setContentReloadSignal] = useState(0)
   const [isDark, setIsDark] = useState(false)
 
   useEffect(() => {
@@ -41,6 +44,10 @@ export function AppProvider({ children }: { children: ReactNode }): JSX.Element 
     setDataVersion(v => v + 1)
   }, [])
 
+  const bumpContentReload = useCallback(() => {
+    setContentReloadSignal(v => v + 1)
+  }, [])
+
   const toggleTheme = useCallback(() => {
     setIsDark(prev => {
       const next = !prev
@@ -53,7 +60,7 @@ export function AppProvider({ children }: { children: ReactNode }): JSX.Element 
   }, [isDark])
 
   return (
-    <AppContext.Provider value={{ selectedNode, treeVersion, dataVersion, isDark, selectNode, refreshTree, bumpDataVersion, toggleTheme }}>
+    <AppContext.Provider value={{ selectedNode, treeVersion, dataVersion, contentReloadSignal, isDark, selectNode, refreshTree, bumpDataVersion, bumpContentReload, toggleTheme }}>
       {children}
     </AppContext.Provider>
   )

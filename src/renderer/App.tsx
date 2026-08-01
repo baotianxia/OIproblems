@@ -14,7 +14,7 @@ import OperationLog from './components/OperationLog'
 const { Sider, Content } = Layout
 
 function AppLayout(): JSX.Element {
-  const { selectedNode, refreshTree, selectNode, treeVersion, dataVersion, isDark, toggleTheme, bumpDataVersion } = useAppContext()
+  const { selectedNode, refreshTree, selectNode, treeVersion, dataVersion, isDark, toggleTheme, bumpDataVersion, bumpContentReload } = useAppContext()
   const { token } = theme.useToken()
   const [initialLoading, setInitialLoading] = useState(true)
   const [mdImportVisible, setMdImportVisible] = useState(false)
@@ -225,7 +225,7 @@ function AppLayout(): JSX.Element {
         visible={mdImportVisible}
         onClose={() => setMdImportVisible(false)}
         selectedNode={selectedNode}
-        onImported={() => { refreshTree(); bumpDataVersion(); setMdImportVisible(false); loadGlobalStats() }}
+        onImported={() => { refreshTree(); bumpDataVersion(); bumpContentReload(); setMdImportVisible(false); loadGlobalStats() }}
       />
       <OperationLog visible={opLogVisible} onClose={() => setOpLogVisible(false)} />
     </Layout>
