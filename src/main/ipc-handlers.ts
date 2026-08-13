@@ -22,6 +22,10 @@ interface TreeNode {
 export function registerIpcHandlers(): void {
   const db = getDb()
 
+  const logOperation = (description: string, snapshot: any[]): void => {
+    db.prepare('INSERT INTO operation_log (description, snapshot) VALUES (?, ?)').run(description, JSON.stringify(snapshot))
+  }
+
   ipcMain.handle('folder:create', (_e, { name, parentId }: { name: string; parentId?: number }) => {
     const stmt = db.prepare('INSERT INTO folders (name, parent_id) VALUES (?, ?)')
     const result = stmt.run(name, parentId ?? null)
@@ -39,6 +43,7 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('folder:delete', (_e, { id }: { id: number }) => {
+    const snapshot: any[] = []
     db.transaction(() => {
       const allIds = db.prepare(`
         WITH RECURSIVE cte AS (
@@ -50,16 +55,31 @@ export function registerIpcHandlers(): void {
       `).all(id) as { id: number }[]
 
       for (const row of allIds) {
-        const sids = (db.prepare('SELECT id FROM sheets WHERE folder_id = ?').all(row.id) as { id: number }[]).map(r => r.id)
-        for (const sid of sids) {
-          db.prepare('DELETE FROM problems WHERE part_id IN (SELECT id FROM parts WHERE sheet_id = ?)').run(sid)
-          db.prepare('DELETE FROM problems WHERE sheet_id = ?').run(sid)
-          db.prepare('DELETE FROM parts WHERE sheet_id = ?').run(sid)
-          db.prepare('DELETE FROM sheets WHERE id = ?').run(sid)
+        const folder = db.prepare('SELECT * FROM folders WHERE id = ?').get(row.id) as FolderRow | undefined
+        if (folder) snapshot.push({ table: 'folders', data: folder })
+        const sids = db.prepare('SELECT * FROM sheets WHERE folder_id = ?').all(row.id) as SheetRow[]
+        for (const s of sids) {
+          snapshot.push({ table: 'sheets', data: s })
+          const pids = db.prepare('SELECT * FROM parts WHERE sheet_id = ?').all(s.id) as PartRow[]
+          for (const p of pids) {
+            snapshot.push({ table: 'parts', data: p })
+            const probs = db.prepare('SELECT * FROM problems WHERE part_id = ?').all(p.id) as ProblemRow[]
+            for (const pr of probs) snapshot.push({ table: 'problems', data: pr })
+          }
+          const dps = db.prepare('SELECT * FROM problems WHERE sheet_id = ? AND part_id IS NULL').all(s.id) as ProblemRow[]
+          for (const pr of dps) snapshot.push({ table: 'problems', data: pr })
+          db.prepare('DELETE FROM problems WHERE part_id IN (SELECT id FROM parts WHERE sheet_id = ?)').run(s.id)
+          db.prepare('DELETE FROM problems WHERE sheet_id = ?').run(s.id)
+          db.prepare('DELETE FROM parts WHERE sheet_id = ?').run(s.id)
+          db.prepare('DELETE FROM sheets WHERE id = ?').run(s.id)
         }
         db.prepare('DELETE FROM folders WHERE id = ?').run(row.id)
       }
     })()
+    if (snapshot.length > 0) {
+      const folder = snapshot[0].data as FolderRow
+      logOperation(`删除文件夹"${folder.name}"（含 ${snapshot.length - 1} 项内容）`, snapshot)
+    }
     return { success: true }
   })
 
@@ -80,12 +100,28 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('sheet:delete', (_e, { id }: { id: number }) => {
+    const snapshot: any[] = []
     db.transaction(() => {
+      const sheet = db.prepare('SELECT * FROM sheets WHERE id = ?').get(id) as SheetRow | undefined
+      if (!sheet) return
+      snapshot.push({ table: 'sheets', data: sheet })
+      const pids = db.prepare('SELECT * FROM parts WHERE sheet_id = ?').all(id) as PartRow[]
+      for (const p of pids) {
+        snapshot.push({ table: 'parts', data: p })
+        const probs = db.prepare('SELECT * FROM problems WHERE part_id = ?').all(p.id) as ProblemRow[]
+        for (const pr of probs) snapshot.push({ table: 'problems', data: pr })
+      }
+      const dps = db.prepare('SELECT * FROM problems WHERE sheet_id = ? AND part_id IS NULL').all(id) as ProblemRow[]
+      for (const pr of dps) snapshot.push({ table: 'problems', data: pr })
       db.prepare('DELETE FROM problems WHERE part_id IN (SELECT id FROM parts WHERE sheet_id = ?)').run(id)
       db.prepare('DELETE FROM problems WHERE sheet_id = ?').run(id)
       db.prepare('DELETE FROM parts WHERE sheet_id = ?').run(id)
       db.prepare('DELETE FROM sheets WHERE id = ?').run(id)
     })()
+    if (snapshot.length > 0) {
+      const sheet = snapshot[0].data as SheetRow
+      logOperation(`删除题单"${sheet.name}"（含 ${snapshot.length - 1} 项内容）`, snapshot)
+    }
     return { success: true }
   })
 
@@ -101,7 +137,20 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('part:delete', (_e, { id }: { id: number }) => {
-    db.prepare('DELETE FROM parts WHERE id = ?').run(id)
+    const snapshot: any[] = []
+    db.transaction(() => {
+      const part = db.prepare('SELECT * FROM parts WHERE id = ?').get(id) as PartRow | undefined
+      if (!part) return
+      snapshot.push({ table: 'parts', data: part })
+      const probs = db.prepare('SELECT * FROM problems WHERE part_id = ?').all(id) as ProblemRow[]
+      for (const pr of probs) snapshot.push({ table: 'problems', data: pr })
+      db.prepare('DELETE FROM problems WHERE part_id = ?').run(id)
+      db.prepare('DELETE FROM parts WHERE id = ?').run(id)
+    })()
+    if (snapshot.length > 0) {
+      const part = snapshot[0].data as PartRow
+      logOperation(`删除 Part"${part.title}"（含 ${snapshot.length - 1} 项内容）`, snapshot)
+    }
     return { success: true }
   })
 
@@ -117,7 +166,11 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('problem:delete', (_e, { id }: { id: number }) => {
-    db.prepare('DELETE FROM problems WHERE id = ?').run(id)
+    const problem = db.prepare('SELECT * FROM problems WHERE id = ?').get(id) as ProblemRow | undefined
+    if (problem) {
+      db.prepare('DELETE FROM problems WHERE id = ?').run(id)
+      logOperation(`删除题目"${problem.name}"`, [{ table: 'problems', data: problem }])
+    }
     return { success: true }
   })
 
@@ -566,8 +619,8 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('operation:getLogs', (_e, { limit }: { limit: number }) => {
-    const logs = db.prepare('SELECT id, description, created_at FROM operation_log ORDER BY id DESC LIMIT ?').all(limit) as { id: number; description: string; created_at: string }[]
-    return logs
+    const logs = db.prepare('SELECT id, description, snapshot, created_at FROM operation_log ORDER BY id DESC LIMIT ?').all(limit) as { id: number; description: string; snapshot: string; created_at: string }[]
+    return logs.map(l => ({ id: l.id, description: l.description, created_at: l.created_at, snapshot: JSON.parse(l.snapshot) as any[] }))
   })
 
   ipcMain.handle('operation:rollback', (_e, { id }: { id: number }) => {

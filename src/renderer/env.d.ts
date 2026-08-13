@@ -56,7 +56,7 @@ interface ApiType {
   }
   operation: {
     log(params: { description: string; snapshot: any[] }): Promise<{ success: boolean }>
-    getLogs(params: { limit: number }): Promise<{ id: number; description: string; created_at: string }[]>
+    getLogs(params: { limit: number }): Promise<{ id: number; description: string; created_at: string; snapshot: { table: string; data: any }[] }[]>
     rollback(params: { id: number }): Promise<{ success: boolean; error?: string }>
     cleanup(params: { maxCount: number }): Promise<{ success: boolean }>
   }
@@ -120,8 +120,6 @@ interface SearchResults {
   problems: { id: number; name: string; part_id: number | null; sheet_id: number | null; type: 'problem' }[]
 }
 
-declare global {
-  interface Window {
-    api: ApiType
-  }
+interface Window {
+  api: ApiType
 }

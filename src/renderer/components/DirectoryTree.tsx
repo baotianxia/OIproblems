@@ -79,7 +79,7 @@ function buildTreeData(
 }
 
 export default function DirectoryTreeComponent(): JSX.Element {
-  const { selectNode, treeVersion, refreshTree, selectedNode } = useAppContext()
+  const { selectNode, treeVersion, refreshTree, selectedNode, bumpContentReload } = useAppContext()
   const [treeNodes, setTreeNodes] = useState<TreeNode[]>([])
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([])
   const contextNodeRef = useRef<{ key: string; type: string; id: number; name?: string; parent_id?: number | null; folder_id?: number; sheet_id?: number } | null>(null)
@@ -325,6 +325,7 @@ export default function DirectoryTreeComponent(): JSX.Element {
             }
           }
           await refreshTree()
+          bumpContentReload()
           message.success('已删除')
         } catch (e) {
           message.error('删除失败')

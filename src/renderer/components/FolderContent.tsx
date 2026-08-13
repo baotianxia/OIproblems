@@ -160,6 +160,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
       onOk: async () => {
         await window.api.folder.delete({ id })
         await refreshTree()
+        await loadData()
         message.success('已删除')
       }
     })
@@ -193,6 +194,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
       onOk: async () => {
         await window.api.sheet.delete({ id })
         await refreshTree()
+        await loadData()
         message.success('已删除')
       }
     })
