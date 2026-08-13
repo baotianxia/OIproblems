@@ -79,6 +79,7 @@ interface FolderItem {
   description: string
   parent_id: number | null
   sort_order: number
+  created_at: string
 }
 
 interface SheetItem {
@@ -87,6 +88,7 @@ interface SheetItem {
   description: string
   folder_id: number | null
   sort_order: number
+  created_at: string
 }
 
 interface PartItem {
