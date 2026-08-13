@@ -7,6 +7,7 @@ interface ApiType {
     delete(params: { id: number }): Promise<{ success: boolean }>
     move(params: { id: number; parentId?: number | null }): Promise<{ success: boolean; error?: string }>
     reorder(params: { items: { id: number; sortOrder: number }[] }): Promise<{ success: boolean }>
+    sort(params: { items: { id: number; sortOrder: number }[] }): Promise<{ success: boolean }>
     updateDescription(params: { id: number; description: string }): Promise<{ success: boolean }>
     batchDelete(params: { ids: number[] }): Promise<{ success: boolean }>
   }
@@ -16,6 +17,7 @@ interface ApiType {
     delete(params: { id: number }): Promise<{ success: boolean }>
     move(params: { id: number; folderId?: number | null }): Promise<{ success: boolean; error?: string }>
     reorder(params: { items: { id: number; sortOrder: number }[] }): Promise<{ success: boolean }>
+    sort(params: { items: { id: number; sortOrder: number }[] }): Promise<{ success: boolean }>
     getById(params: { id: number }): Promise<SheetDetail | null>
     updateDescription(params: { id: number; description: string }): Promise<{ success: boolean }>
     batchDelete(params: { ids: number[] }): Promise<{ success: boolean }>
@@ -80,6 +82,7 @@ interface FolderItem {
   description: string
   parent_id: number | null
   sort_order: number
+  drag_order: number
   created_at: string
 }
 
@@ -89,6 +92,7 @@ interface SheetItem {
   description: string
   folder_id: number | null
   sort_order: number
+  drag_order: number
   created_at: string
 }
 

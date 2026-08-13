@@ -81,8 +81,9 @@ export function registerIpcHandlers(): void {
   }
 
   ipcMain.handle('folder:create', (_e, { name, parentId }: { name: string; parentId?: number }) => {
-    const stmt = db.prepare('INSERT INTO folders (name, parent_id) VALUES (?, ?)')
-    const result = stmt.run(name, parentId ?? null)
+    const last = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM folders WHERE parent_id IS ?').get(parentId ?? null) as { m: number }
+    const stmt = db.prepare('INSERT INTO folders (name, parent_id, sort_order, drag_order) VALUES (?, ?, ?, ?)')
+    const result = stmt.run(name, parentId ?? null, last.m + 1, last.m + 1)
     return { id: Number(result.lastInsertRowid) }
   })
 
@@ -103,12 +104,21 @@ export function registerIpcHandlers(): void {
     }
     db.transaction(() => {
       const last = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM folders WHERE parent_id IS ?').get(parentId ?? null) as { m: number }
-      db.prepare('UPDATE folders SET parent_id = ?, sort_order = ? WHERE id = ?').run(parentId ?? null, last.m + 1, id)
+      db.prepare('UPDATE folders SET parent_id = ?, sort_order = ?, drag_order = ? WHERE id = ?').run(parentId ?? null, last.m + 1, last.m + 1, id)
     })()
     return { success: true }
   })
 
   ipcMain.handle('folder:reorder', (_e, { items }: { items: { id: number; sortOrder: number }[] }) => {
+    const stmt = db.prepare('UPDATE folders SET sort_order = ?, drag_order = ? WHERE id = ?')
+    const transaction = db.transaction(() => {
+      for (const item of items) stmt.run(item.sortOrder, item.sortOrder, item.id)
+    })
+    transaction()
+    return { success: true }
+  })
+
+  ipcMain.handle('folder:sort', (_e, { items }: { items: { id: number; sortOrder: number }[] }) => {
     const stmt = db.prepare('UPDATE folders SET sort_order = ? WHERE id = ?')
     const transaction = db.transaction(() => {
       for (const item of items) stmt.run(item.sortOrder, item.id)
@@ -144,8 +154,9 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('sheet:create', (_e, { name, folderId }: { name: string; folderId?: number }) => {
-    const stmt = db.prepare('INSERT INTO sheets (name, folder_id) VALUES (?, ?)')
-    const result = stmt.run(name, folderId ?? null)
+    const last = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM sheets WHERE folder_id IS ?').get(folderId ?? null) as { m: number }
+    const stmt = db.prepare('INSERT INTO sheets (name, folder_id, sort_order, drag_order) VALUES (?, ?, ?, ?)')
+    const result = stmt.run(name, folderId ?? null, last.m + 1, last.m + 1)
     return { id: Number(result.lastInsertRowid) }
   })
 
@@ -158,12 +169,21 @@ export function registerIpcHandlers(): void {
     }
     db.transaction(() => {
       const last = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM sheets WHERE folder_id IS ?').get(folderId ?? null) as { m: number }
-      db.prepare('UPDATE sheets SET folder_id = ?, sort_order = ? WHERE id = ?').run(folderId ?? null, last.m + 1, id)
+      db.prepare('UPDATE sheets SET folder_id = ?, sort_order = ?, drag_order = ? WHERE id = ?').run(folderId ?? null, last.m + 1, last.m + 1, id)
     })()
     return { success: true }
   })
 
   ipcMain.handle('sheet:reorder', (_e, { items }: { items: { id: number; sortOrder: number }[] }) => {
+    const stmt = db.prepare('UPDATE sheets SET sort_order = ?, drag_order = ? WHERE id = ?')
+    const transaction = db.transaction(() => {
+      for (const item of items) stmt.run(item.sortOrder, item.sortOrder, item.id)
+    })
+    transaction()
+    return { success: true }
+  })
+
+  ipcMain.handle('sheet:sort', (_e, { items }: { items: { id: number; sortOrder: number }[] }) => {
     const stmt = db.prepare('UPDATE sheets SET sort_order = ? WHERE id = ?')
     const transaction = db.transaction(() => {
       for (const item of items) stmt.run(item.sortOrder, item.id)
@@ -385,8 +405,8 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('tree:get', () => {
-    const folders = db.prepare('SELECT id, name, description, parent_id, created_at FROM folders ORDER BY COALESCE(parent_id, 0), sort_order, id').all() as FolderRow[]
-    const sheets = db.prepare('SELECT id, name, description, folder_id, created_at FROM sheets ORDER BY sort_order, id').all() as SheetRow[]
+    const folders = db.prepare('SELECT id, name, description, parent_id, created_at, drag_order FROM folders ORDER BY COALESCE(parent_id, 0), sort_order, id').all() as FolderRow[]
+    const sheets = db.prepare('SELECT id, name, description, folder_id, created_at, drag_order FROM sheets ORDER BY sort_order, id').all() as SheetRow[]
     const parts = db.prepare('SELECT * FROM parts ORDER BY sort_order, id').all() as PartRow[]
     const problems = db.prepare('SELECT id, name, part_id, sheet_id, completed, created_at, drag_order FROM problems ORDER BY sort_order, id').all() as ProblemRow[]
     return { folders, sheets, parts, problems }

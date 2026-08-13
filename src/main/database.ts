@@ -98,6 +98,18 @@ function createTables(): void {
     db.exec("ALTER TABLE problems ADD COLUMN drag_order INTEGER DEFAULT 0")
     db.exec('UPDATE problems SET drag_order = sort_order')
   }
+
+  const fcols = db.prepare("PRAGMA table_info('folders')").all() as any[]
+  if (!fcols.find(c => c.name === 'drag_order')) {
+    db.exec("ALTER TABLE folders ADD COLUMN drag_order INTEGER DEFAULT 0")
+    db.exec('UPDATE folders SET drag_order = sort_order')
+  }
+
+  const scols = db.prepare("PRAGMA table_info('sheets')").all() as any[]
+  if (!scols.find(c => c.name === 'drag_order')) {
+    db.exec("ALTER TABLE sheets ADD COLUMN drag_order INTEGER DEFAULT 0")
+    db.exec('UPDATE sheets SET drag_order = sort_order')
+  }
 }
 
 export function getDb(): Database.Database {

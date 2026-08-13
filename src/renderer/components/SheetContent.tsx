@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { getScrollPos, setScrollPos } from './scrollCache'
-import { Typography, Button, Space, Modal, Input, message, Empty, Spin, Checkbox, Popconfirm } from 'antd'
+import { Typography, Button, Space, Modal, Input, message, Empty, Spin, Checkbox, Popconfirm, Dropdown } from 'antd'
+import type { MenuProps } from 'antd'
 import { PlusOutlined, ImportOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined, CheckSquareOutlined, DeleteOutlined, SelectOutlined } from '@ant-design/icons'
 import { submitOnEnter, renderMarkdown, handleLinkPaste } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
@@ -357,8 +358,14 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
     )
   }
 
+  const pageMenuItems: MenuProps['items'] = [
+    { key: 'add-part', icon: <PlusOutlined />, label: '新建 Part', onClick: handleAddPart },
+    { key: 'add-problem', icon: <PlusOutlined />, label: '新建题目', onClick: handleAddDirectProblem },
+  ]
+
   return (
-    <div>
+    <Dropdown menu={{ items: pageMenuItems }} trigger={['contextMenu']}>
+      <div style={{ minHeight: '100%' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, float: 'right', marginTop: 4 }}>
         <Button icon={<SelectOutlined />} type={selectMode ? 'primary' : 'default'} onClick={() => { setSelectMode(v => !v); handleDeselectAll() }}>选择</Button>
       </div>
@@ -439,6 +446,7 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
         selectedNode={selectedNode}
         onImported={() => { loadData(); refreshTree() }}
       />
-    </div>
+      </div>
+    </Dropdown>
   )
 }

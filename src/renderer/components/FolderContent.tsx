@@ -76,23 +76,33 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
   }
 
   const applySort = async (type: 'folder' | 'sheet', mode: 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'manual') => {
-    const sortKey = (mode === 'name-asc' || mode === 'name-desc') ? 'name' : 'created_at'
     const dir = (mode === 'name-asc' || mode === 'time-asc') ? 1 : -1
     const comparator = (a: FolderItem | SheetItem, b: FolderItem | SheetItem): number => {
-      if (mode === 'manual') return a.sort_order - b.sort_order
-      const av = a[sortKey] || ''
-      const bv = b[sortKey] || ''
-      const cmp = sortKey === 'name' ? av.localeCompare(bv, 'zh-Hans-CN') : av.localeCompare(bv)
-      return cmp * dir
+      if (mode === 'manual') return a.drag_order - b.drag_order
+      if (mode === 'name-asc' || mode === 'name-desc') {
+        return a.name.localeCompare(b.name, 'zh-Hans-CN') * dir
+      }
+      return (a.created_at || '').localeCompare(b.created_at || '') * dir
     }
+    const items = (input: { id: number }[]) => input.map((x, i) => ({ id: x.id, sortOrder: i }))
     if (type === 'folder') {
       const sorted = [...subFolders].sort(comparator as (a: FolderItem, b: FolderItem) => number)
       setSubFolders(sorted)
-      await window.api.folder.reorder({ items: sorted.map((f, i) => ({ id: f.id, sortOrder: i })) })
+      const payload = items(sorted)
+      if (mode === 'manual') {
+        await window.api.folder.reorder({ items: payload })
+      } else {
+        await window.api.folder.sort({ items: payload })
+      }
     } else {
       const sorted = [...sheets].sort(comparator as (a: SheetItem, b: SheetItem) => number)
       setSheets(sorted)
-      await window.api.sheet.reorder({ items: sorted.map((s, i) => ({ id: s.id, sortOrder: i })) })
+      const payload = items(sorted)
+      if (mode === 'manual') {
+        await window.api.sheet.reorder({ items: payload })
+      } else {
+        await window.api.sheet.sort({ items: payload })
+      }
     }
     refreshTree()
   }
@@ -395,7 +405,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
 
   return (
     <Dropdown menu={{ items: pageMenuItems }} trigger={['contextMenu']}>
-      <div>
+      <div style={{ minHeight: '100%' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, float: 'right', marginTop: 4 }}>
         <Button size="small" icon={<SelectOutlined />} type={selectMode ? 'primary' : 'default'} onClick={() => { setSelectMode(v => !v); setSelectedFolderIds(new Set()); setSelectedSheetIds(new Set()) }}>选择</Button>
       </div>
