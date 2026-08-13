@@ -131,32 +131,20 @@ const handleDragEnd = useCallback((event: DragEndEvent) => {
     onRefresh()
   }, [displayIds, bumpDataVersion, onRefresh])
 
-  const applySort = async (mode: 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'create' | 'manual') => {
-    const dir = (mode === 'name-asc' || mode === 'time-asc') ? 1 : -1
+  const applySort = async (mode: 'name-asc' | 'name-desc' | 'create') => {
+    const dir = mode === 'name-asc' ? 1 : -1
     const sorted = [...orderedProblems].sort((a, b) => {
-      if (mode === 'manual') {
-        const d = a.drag_order - b.drag_order
-        if (d !== 0) return d
-        return a.id - b.id
-      }
       if (mode === 'create') return a.id - b.id
-      if (mode === 'name-asc' || mode === 'name-desc') {
-        return a.name.localeCompare(b.name, 'zh-Hans-CN') * dir
-      }
-      return (a.created_at || '').localeCompare(b.created_at || '') * dir
+      return a.name.localeCompare(b.name, 'zh-Hans-CN') * dir
     })
     const unchanged = sorted.map(p => p.id).join(',') === orderedProblems.map(p => p.id).join(',')
     if (unchanged) {
-      message.info(mode === 'manual' ? '当前已是拖拽顺序' : mode === 'create' ? '当前已是创建顺序' : '当前已按此顺序排列')
+      message.info(mode === 'create' ? '当前已是创建顺序' : '当前已按此顺序排列')
       return
     }
     const items = sorted.map((p, i) => ({ id: p.id, sortOrder: i }))
     setDisplayIds(sorted.map(p => p.id))
-    if (mode === 'manual') {
-      await window.api.problem.reorder({ items })
-    } else {
-      await window.api.problem.sort({ items })
-    }
+    await window.api.problem.sort({ items })
     bumpDataVersion()
     onRefresh()
   }
@@ -164,11 +152,8 @@ const handleDragEnd = useCallback((event: DragEndEvent) => {
   const sortMenu: MenuProps['items'] = [
     { key: 'name-asc', label: '按名称 A-Z' },
     { key: 'name-desc', label: '按名称 Z-A' },
-    { key: 'time-asc', label: '按创建时间 旧→新' },
-    { key: 'time-desc', label: '按创建时间 新→旧' },
     { type: 'divider' as const },
     { key: 'create', label: '按创建顺序' },
-    { key: 'manual', label: '恢复拖拽顺序' },
   ]
 
   return (
@@ -194,7 +179,7 @@ const handleDragEnd = useCallback((event: DragEndEvent) => {
                 { type: 'divider' as const },
                 { key: 'delete', label: '删除', danger: true, onClick: () => { Modal.confirm({ title: '确认删除此题？', okText: '删除', okType: 'danger', onOk: () => handleDelete(problem.id) }) } },
                 { type: 'divider' as const },
-                { key: 'sort', label: '排序当前区域', children: sortMenu.map(item => ({ ...item, onClick: () => applySort(item.key as 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'create' | 'manual') })) },
+                { key: 'sort', label: '排序当前区域', children: sortMenu.map(item => ({ ...item, onClick: () => applySort(item.key as 'name-asc' | 'name-desc' | 'create') })) },
               ].filter(Boolean)
               return (
                 <Dropdown key={problem.id} menu={{ items: menuItems }} trigger={['contextMenu']}>

@@ -75,49 +75,31 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     return result
   }
 
-  const applySort = async (type: 'folder' | 'sheet', mode: 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'create' | 'manual') => {
-    const dir = (mode === 'name-asc' || mode === 'time-asc') ? 1 : -1
+  const applySort = async (type: 'folder' | 'sheet', mode: 'name-asc' | 'name-desc' | 'create') => {
+    const dir = mode === 'name-asc' ? 1 : -1
     const comparator = (a: FolderItem | SheetItem, b: FolderItem | SheetItem): number => {
-      if (mode === 'manual') {
-        const d = a.drag_order - b.drag_order
-        if (d !== 0) return d
-        return a.id - b.id
-      }
       if (mode === 'create') return a.id - b.id
-      if (mode === 'name-asc' || mode === 'name-desc') {
-        return a.name.localeCompare(b.name, 'zh-Hans-CN') * dir
-      }
-      return (a.created_at || '').localeCompare(b.created_at || '') * dir
+      return a.name.localeCompare(b.name, 'zh-Hans-CN') * dir
     }
     const items = (input: { id: number }[]) => input.map((x, i) => ({ id: x.id, sortOrder: i }))
     if (type === 'folder') {
       const sorted = [...subFolders].sort(comparator as (a: FolderItem, b: FolderItem) => number)
       const unchanged = sorted.map(x => x.id).join(',') === subFolders.map(x => x.id).join(',')
       if (unchanged) {
-        message.info(mode === 'manual' ? '当前已是拖拽顺序' : mode === 'create' ? '当前已是创建顺序' : '当前已按此顺序排列')
+        message.info(mode === 'create' ? '当前已是创建顺序' : '当前已按此顺序排列')
         return
       }
       setSubFolders(sorted)
-      const payload = items(sorted)
-      if (mode === 'manual') {
-        await window.api.folder.reorder({ items: payload })
-      } else {
-        await window.api.folder.sort({ items: payload })
-      }
+      await window.api.folder.sort({ items: items(sorted) })
     } else {
       const sorted = [...sheets].sort(comparator as (a: SheetItem, b: SheetItem) => number)
       const unchanged = sorted.map(x => x.id).join(',') === sheets.map(x => x.id).join(',')
       if (unchanged) {
-        message.info(mode === 'manual' ? '当前已是拖拽顺序' : mode === 'create' ? '当前已是创建顺序' : '当前已按此顺序排列')
+        message.info(mode === 'create' ? '当前已是创建顺序' : '当前已按此顺序排列')
         return
       }
       setSheets(sorted)
-      const payload = items(sorted)
-      if (mode === 'manual') {
-        await window.api.sheet.reorder({ items: payload })
-      } else {
-        await window.api.sheet.sort({ items: payload })
-      }
+      await window.api.sheet.sort({ items: items(sorted) })
     }
     refreshTree()
   }
@@ -397,17 +379,14 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     )
   }
 
-  const sortOptions: { key: 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'create' | 'manual'; label: string }[] = [
+  const sortOptions: { key: 'name-asc' | 'name-desc'; label: string }[] = [
     { key: 'name-asc', label: '按名称 A-Z' },
     { key: 'name-desc', label: '按名称 Z-A' },
-    { key: 'time-asc', label: '按创建时间 旧→新' },
-    { key: 'time-desc', label: '按创建时间 新→旧' },
   ]
   const pageSortChildren = (type: 'folder' | 'sheet'): MenuProps['items'] => {
     const items: MenuProps['items'] = sortOptions.map(o => ({ key: o.key, label: o.label, onClick: () => applySort(type, o.key) }))
     items.push({ type: 'divider' })
     items.push({ key: 'create', label: '按创建顺序', onClick: () => applySort(type, 'create') })
-    items.push({ key: 'manual', label: '恢复拖拽顺序', onClick: () => applySort(type, 'manual') })
     return items
   }
 
@@ -447,11 +426,8 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                   const sortMenu: MenuProps['items'] = [
                     { key: 'name-asc', label: '按名称 A-Z' },
                     { key: 'name-desc', label: '按名称 Z-A' },
-                    { key: 'time-asc', label: '按创建时间 旧→新' },
-                    { key: 'time-desc', label: '按创建时间 新→旧' },
                     { type: 'divider' },
                     { key: 'create', label: '按创建顺序' },
-                    { key: 'manual', label: '恢复拖拽顺序' },
                   ]
                   const folderMenuItems: MenuProps['items'] = [
                     { key: 'rename', label: '重命名', onClick: () => renameFolder(f.id, f.name) },
@@ -462,7 +438,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                       key: 'sort', label: '排序当前区域',
                       children: sortMenu.map(item => ({
                         ...item,
-                        onClick: () => applySort('folder', item.key as 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'create' | 'manual')
+                        onClick: () => applySort('folder', item.key as 'name-asc' | 'name-desc' | 'create')
                       }))
                     },
                   ]
@@ -512,11 +488,8 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                   const sortMenu: MenuProps['items'] = [
                     { key: 'name-asc', label: '按名称 A-Z' },
                     { key: 'name-desc', label: '按名称 Z-A' },
-                    { key: 'time-asc', label: '按创建时间 旧→新' },
-                    { key: 'time-desc', label: '按创建时间 新→旧' },
                     { type: 'divider' },
                     { key: 'create', label: '按创建顺序' },
-                    { key: 'manual', label: '恢复拖拽顺序' },
                   ]
                   const sheetMenuItems: MenuProps['items'] = [
                     { key: 'rename', label: '重命名', onClick: () => renameSheet(s.id, s.name) },
@@ -527,7 +500,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                       key: 'sort', label: '排序当前区域',
                       children: sortMenu.map(item => ({
                         ...item,
-                        onClick: () => applySort('sheet', item.key as 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'create' | 'manual')
+                        onClick: () => applySort('sheet', item.key as 'name-asc' | 'name-desc' | 'create')
                       }))
                     },
                   ]
