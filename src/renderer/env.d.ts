@@ -32,6 +32,7 @@ interface ApiType {
     delete(params: { id: number }): Promise<{ success: boolean }>
     toggle(params: { id: number }): Promise<{ success: boolean }>
     reorder(params: { items: { id: number; sortOrder: number }[] }): Promise<{ success: boolean }>
+    sort(params: { items: { id: number; sortOrder: number }[] }): Promise<{ success: boolean }>
     bulkCreate(params: { names: string[]; partId?: number; sheetId?: number }): Promise<{ success: boolean }>
     randomFromContext(params: { folderId?: number }): Promise<{ id: number; name: string; part_id: number | null; sheet_id: number } | null>
     batchSetCompleted(params: { ids: number[]; completed: boolean }): Promise<{ success: boolean }>
@@ -104,6 +105,7 @@ interface ProblemItem {
   part_id: number | null
   sheet_id: number | null
   sort_order: number
+  drag_order: number
   completed: number
   created_at: string
 }

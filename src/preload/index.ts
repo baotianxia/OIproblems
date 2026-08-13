@@ -12,6 +12,8 @@ const api = {
       ipcRenderer.invoke('problem:toggle', params),
     reorder: (params: { items: { id: number; sortOrder: number }[] }) =>
       ipcRenderer.invoke('problem:reorder', params),
+    sort: (params: { items: { id: number; sortOrder: number }[] }) =>
+      ipcRenderer.invoke('problem:sort', params),
     bulkCreate: (params: { names: string[]; partId?: number; sheetId?: number }) =>
       ipcRenderer.invoke('problem:bulkCreate', params),
     randomFromContext: (params: { folderId?: number }) =>

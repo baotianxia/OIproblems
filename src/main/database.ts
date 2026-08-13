@@ -92,6 +92,12 @@ function createTables(): void {
   if (!fdescCols.find(c => c.name === 'description')) {
     db.exec("ALTER TABLE folders ADD COLUMN description TEXT DEFAULT ''")
   }
+
+  const pcols = db.prepare("PRAGMA table_info('problems')").all() as any[]
+  if (!pcols.find(c => c.name === 'drag_order')) {
+    db.exec("ALTER TABLE problems ADD COLUMN drag_order INTEGER DEFAULT 0")
+    db.exec('UPDATE problems SET drag_order = sort_order')
+  }
 }
 
 export function getDb(): Database.Database {

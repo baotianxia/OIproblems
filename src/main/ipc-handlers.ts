@@ -220,8 +220,11 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('problem:create', (_e, { name, partId, sheetId }: { name: string; partId?: number; sheetId?: number }) => {
-    const stmt = db.prepare('INSERT INTO problems (name, part_id, sheet_id) VALUES (?, ?, ?)')
-    const result = stmt.run(name, partId ?? null, sheetId ?? null)
+    const last = (partId != null
+      ? db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM problems WHERE part_id = ?').get(partId)
+      : db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM problems WHERE sheet_id = ? AND part_id IS NULL').get(sheetId)) as { m: number }
+    const stmt = db.prepare('INSERT INTO problems (name, part_id, sheet_id, sort_order, drag_order) VALUES (?, ?, ?, ?, ?)')
+    const result = stmt.run(name, partId ?? null, sheetId ?? null, last.m + 1, last.m + 1)
     return { id: Number(result.lastInsertRowid) }
   })
 
@@ -247,6 +250,17 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('problem:reorder', (_e, { items }: { items: { id: number; sortOrder: number }[] }) => {
+    const stmt = db.prepare('UPDATE problems SET sort_order = ?, drag_order = ? WHERE id = ?')
+    const transaction = db.transaction(() => {
+      for (const item of items) {
+        stmt.run(item.sortOrder, item.sortOrder, item.id)
+      }
+    })
+    transaction()
+    return { success: true }
+  })
+
+  ipcMain.handle('problem:sort', (_e, { items }: { items: { id: number; sortOrder: number }[] }) => {
     const stmt = db.prepare('UPDATE problems SET sort_order = ? WHERE id = ?')
     const transaction = db.transaction(() => {
       for (const item of items) {
@@ -374,7 +388,7 @@ export function registerIpcHandlers(): void {
     const folders = db.prepare('SELECT id, name, description, parent_id, created_at FROM folders ORDER BY COALESCE(parent_id, 0), sort_order, id').all() as FolderRow[]
     const sheets = db.prepare('SELECT id, name, description, folder_id, created_at FROM sheets ORDER BY sort_order, id').all() as SheetRow[]
     const parts = db.prepare('SELECT * FROM parts ORDER BY sort_order, id').all() as PartRow[]
-    const problems = db.prepare('SELECT id, name, part_id, sheet_id, completed, created_at FROM problems ORDER BY sort_order, id').all() as ProblemRow[]
+    const problems = db.prepare('SELECT id, name, part_id, sheet_id, completed, created_at, drag_order FROM problems ORDER BY sort_order, id').all() as ProblemRow[]
     return { folders, sheets, parts, problems }
   })
 

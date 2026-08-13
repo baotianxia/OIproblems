@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { Checkbox, Button, Popconfirm, Input, Modal, message, theme, Tooltip, Dropdown } from 'antd'
 import type { MenuProps } from 'antd'
 import { DeleteOutlined, EditOutlined, ArrowUpOutlined, ArrowDownOutlined, CopyOutlined, LinkOutlined } from '@ant-design/icons'
@@ -27,6 +27,16 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
   const { isDark, bumpDataVersion } = useAppContext()
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  const [displayIds, setDisplayIds] = useState<number[]>(() => problems.map(p => p.id))
+
+  useEffect(() => {
+    setDisplayIds(problems.map(p => p.id))
+  }, [problems])
+
+  const orderedProblems = displayIds
+    .map(id => problems.find(p => p.id === id))
+    .filter((p): p is ProblemItem => !!p)
 
   useEffect(() => {
     if (highlightedId == null) return
@@ -76,24 +86,20 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
     })
   }
 
-  const handleMoveUp = async (index: number) => {
+const handleMoveUp = async (index: number) => {
     if (index === 0) return
-    const items = problems.map((p, i) => ({
-      id: p.id,
-      sortOrder: i === index ? index - 1 : i === index - 1 ? index : i
-    }))
-    await window.api.problem.reorder({ items })
+    const next = arrayMove(displayIds, index, index - 1)
+    setDisplayIds(next)
+    await window.api.problem.reorder({ items: next.map((id, i) => ({ id, sortOrder: i })) })
     bumpDataVersion()
     onRefresh()
   }
 
   const handleMoveDown = async (index: number) => {
-    if (index === problems.length - 1) return
-    const items = problems.map((p, i) => ({
-      id: p.id,
-      sortOrder: i === index ? index + 1 : i === index + 1 ? index : i
-    }))
-    await window.api.problem.reorder({ items })
+    if (index === displayIds.length - 1) return
+    const next = arrayMove(displayIds, index, index + 1)
+    setDisplayIds(next)
+    await window.api.problem.reorder({ items: next.map((id, i) => ({ id, sortOrder: i })) })
     bumpDataVersion()
     onRefresh()
   }
@@ -112,27 +118,35 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
     return linkMatch ? linkMatch[2] : inner
   }
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    const oldIndex = problems.findIndex(p => p.id === active.id)
-    const newIndex = problems.findIndex(p => p.id === over.id)
+    const oldIndex = displayIds.findIndex(id => id === active.id)
+    const newIndex = displayIds.findIndex(id => id === over.id)
     if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return
-    window.api.problem.reorder({ items: arrayMove(problems, oldIndex, newIndex).map((p, i) => ({ id: p.id, sortOrder: i })) })
+    const next = arrayMove(displayIds, oldIndex, newIndex)
+    setDisplayIds(next)
+    window.api.problem.reorder({ items: next.map((id, i) => ({ id, sortOrder: i })) })
     bumpDataVersion()
     onRefresh()
-  }, [problems, bumpDataVersion, onRefresh])
+  }, [displayIds, bumpDataVersion, onRefresh])
 
   const applySort = async (mode: 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'manual') => {
     const dir = (mode === 'name-asc' || mode === 'time-asc') ? 1 : -1
-    const sorted = [...problems].sort((a, b) => {
-      if (mode === 'manual') return a.sort_order - b.sort_order
+    const sorted = [...orderedProblems].sort((a, b) => {
+      if (mode === 'manual') return a.drag_order - b.drag_order
       if (mode === 'name-asc' || mode === 'name-desc') {
         return a.name.localeCompare(b.name, 'zh-Hans-CN') * dir
       }
       return (a.created_at || '').localeCompare(b.created_at || '') * dir
     })
-    await window.api.problem.reorder({ items: sorted.map((p, i) => ({ id: p.id, sortOrder: i })) })
+    const items = sorted.map((p, i) => ({ id: p.id, sortOrder: i }))
+    setDisplayIds(sorted.map(p => p.id))
+    if (mode === 'manual') {
+      await window.api.problem.reorder({ items })
+    } else {
+      await window.api.problem.sort({ items })
+    }
     bumpDataVersion()
     onRefresh()
   }
@@ -153,10 +167,10 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
         .select-mode.ant-checkbox-wrapper-checked .ant-checkbox-inner { background-color: #fa8c16 !important; border-color: #fa8c16 !important; }
         .select-mode.ant-checkbox-wrapper-checked .ant-checkbox-inner::after { border-color: #fff !important; }
       `}</style>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={problems.map(p => p.id)} strategy={verticalListSortingStrategy}>
+<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={displayIds} strategy={verticalListSortingStrategy}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {problems.map((problem, index) => {
+            {orderedProblems.map((problem, index) => {
               const isHighlighted = highlightedId === problem.id
               const idContent = extractId(problem.name)
               const menuItems: MenuProps['items'] = [
@@ -165,7 +179,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
                 { key: 'copy-id', label: idContent ? '复制题号' : '无题号', icon: <LinkOutlined />, disabled: !idContent, onClick: () => { if (idContent) { navigator.clipboard.writeText(idContent); message.success('已复制') } } },
                 { type: 'divider' as const },
                 showReorder ? { key: 'up', label: '上移', icon: <ArrowUpOutlined />, disabled: index === 0, onClick: () => handleMoveUp(index) } : null,
-                showReorder ? { key: 'down', label: '下移', icon: <ArrowDownOutlined />, disabled: index === problems.length - 1, onClick: () => handleMoveDown(index) } : null,
+                showReorder ? { key: 'down', label: '下移', icon: <ArrowDownOutlined />, disabled: index === displayIds.length - 1, onClick: () => handleMoveDown(index) } : null,
                 { type: 'divider' as const },
                 { key: 'delete', label: '删除', danger: true, onClick: () => { Modal.confirm({ title: '确认删除此题？', okText: '删除', okType: 'danger', onOk: () => handleDelete(problem.id) }) } },
                 { type: 'divider' as const },
@@ -196,7 +210,7 @@ export default function ProblemList({ problems, onRefresh, showReorder = true, h
                                 <Button type="text" size="small" icon={<ArrowUpOutlined />} disabled={index === 0} onClick={() => handleMoveUp(index)} />
                               </Tooltip>
                               <Tooltip title="下移">
-                                <Button type="text" size="small" icon={<ArrowDownOutlined />} disabled={index === problems.length - 1} onClick={() => handleMoveDown(index)} />
+                                <Button type="text" size="small" icon={<ArrowDownOutlined />} disabled={index === displayIds.length - 1} onClick={() => handleMoveDown(index)} />
                               </Tooltip>
                             </>
                           )}
