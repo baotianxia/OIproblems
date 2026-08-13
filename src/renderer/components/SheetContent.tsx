@@ -204,27 +204,12 @@ export default function SheetContent({ sheetId, activePartId, highlightProblemId
       okText: '删除',
       okType: 'danger',
       onOk: async () => {
-        const snapshot: any[] = []
         if (selectedPartIds.size > 0) {
-          for (const pid of selectedPartIds) {
-            const part = data?.parts.find(p => p.id === pid)
-            if (part) {
-              snapshot.push({ table: 'parts', data: { id: part.id, title: part.title, sheet_id: part.sheet_id, sort_order: 0 } })
-              for (const p of part.problems) snapshot.push({ table: 'problems', data: { id: p.id, name: p.name, part_id: p.part_id, sheet_id: p.sheet_id, sort_order: 0, completed: p.completed } })
-            }
-          }
           await window.api.part.batchDelete({ ids: [...selectedPartIds] })
         }
         const remainingIds = [...selectedProblemIds].filter(id => !data?.parts.some(p => p.problems.some(prob => prob.id === id)))
         if (remainingIds.length > 0) {
-          for (const pid of remainingIds) {
-            const prob = data?.directProblems.find(p => p.id === pid) || data?.parts.flatMap(p => p.problems).find(p => p.id === pid)
-            if (prob) snapshot.push({ table: 'problems', data: { id: prob.id, name: prob.name, part_id: prob.part_id, sheet_id: prob.sheet_id, sort_order: 0, completed: prob.completed } })
-          }
           await window.api.problem.batchDelete({ ids: remainingIds })
-        }
-        if (snapshot.length > 0) {
-          await window.api.operation.log({ description: `批量删除了 ${snapshot.length} 项内容`, snapshot })
         }
         message.success('已删除')
         setSelectMode(false)

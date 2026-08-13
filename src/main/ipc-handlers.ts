@@ -22,8 +22,62 @@ interface TreeNode {
 export function registerIpcHandlers(): void {
   const db = getDb()
 
+  db.prepare('DELETE FROM operation_log WHERE id NOT IN (SELECT id FROM operation_log ORDER BY id DESC LIMIT 100)').run()
+  db.prepare(`
+    DELETE FROM ui_state
+    WHERE key LIKE 'scrollPos_sheet_%'
+      AND CAST(REPLACE(key, 'scrollPos_sheet_', '') AS INTEGER) NOT IN (SELECT id FROM sheets)
+  `).run()
+  db.prepare(`
+    DELETE FROM ui_state
+    WHERE key LIKE 'scrollPos_folder_%'
+      AND CAST(REPLACE(key, 'scrollPos_folder_', '') AS INTEGER) NOT IN (SELECT id FROM folders)
+  `).run()
+
   const logOperation = (description: string, snapshot: any[]): void => {
     db.prepare('INSERT INTO operation_log (description, snapshot) VALUES (?, ?)').run(description, JSON.stringify(snapshot))
+  }
+
+  const snapshotFolderTree = (folderId: number, snapshot: any[]): void => {
+    const allIds = db.prepare(`
+      WITH RECURSIVE cte AS (
+        SELECT id FROM folders WHERE id = ?
+        UNION ALL
+        SELECT f.id FROM folders f JOIN cte ON f.parent_id = cte.id
+      )
+      SELECT id FROM cte ORDER BY id DESC
+    `).all(folderId) as { id: number }[]
+
+    for (const row of allIds) {
+      const folder = db.prepare('SELECT * FROM folders WHERE id = ?').get(row.id) as FolderRow | undefined
+      if (folder) snapshot.push({ table: 'folders', data: folder })
+      const sids = db.prepare('SELECT id FROM sheets WHERE folder_id = ?').all(row.id) as { id: number }[]
+      for (const s of sids) {
+        snapshotSheetTree(s.id, snapshot)
+      }
+    }
+  }
+
+  const snapshotSheetTree = (sheetId: number, snapshot: any[]): void => {
+    const sheet = db.prepare('SELECT * FROM sheets WHERE id = ?').get(sheetId) as SheetRow | undefined
+    if (!sheet) return
+    snapshot.push({ table: 'sheets', data: sheet })
+    const pids = db.prepare('SELECT * FROM parts WHERE sheet_id = ?').all(sheetId) as PartRow[]
+    for (const p of pids) {
+      snapshot.push({ table: 'parts', data: p })
+      const probs = db.prepare('SELECT * FROM problems WHERE part_id = ?').all(p.id) as ProblemRow[]
+      for (const pr of probs) snapshot.push({ table: 'problems', data: pr })
+    }
+    const dps = db.prepare('SELECT * FROM problems WHERE sheet_id = ? AND part_id IS NULL').all(sheetId) as ProblemRow[]
+    for (const pr of dps) snapshot.push({ table: 'problems', data: pr })
+  }
+
+  const snapshotPartTree = (partId: number, snapshot: any[]): void => {
+    const part = db.prepare('SELECT * FROM parts WHERE id = ?').get(partId) as PartRow | undefined
+    if (!part) return
+    snapshot.push({ table: 'parts', data: part })
+    const probs = db.prepare('SELECT * FROM problems WHERE part_id = ?').all(partId) as ProblemRow[]
+    for (const pr of probs) snapshot.push({ table: 'problems', data: pr })
   }
 
   ipcMain.handle('folder:create', (_e, { name, parentId }: { name: string; parentId?: number }) => {
@@ -45,40 +99,15 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('folder:delete', (_e, { id }: { id: number }) => {
     const snapshot: any[] = []
     db.transaction(() => {
-      const allIds = db.prepare(`
-        WITH RECURSIVE cte AS (
-          SELECT id FROM folders WHERE id = ?
-          UNION ALL
-          SELECT f.id FROM folders f JOIN cte ON f.parent_id = cte.id
-        )
-        SELECT id FROM cte ORDER BY id DESC
-      `).all(id) as { id: number }[]
-
-      for (const row of allIds) {
-        const folder = db.prepare('SELECT * FROM folders WHERE id = ?').get(row.id) as FolderRow | undefined
-        if (folder) snapshot.push({ table: 'folders', data: folder })
-        const sids = db.prepare('SELECT * FROM sheets WHERE folder_id = ?').all(row.id) as SheetRow[]
-        for (const s of sids) {
-          snapshot.push({ table: 'sheets', data: s })
-          const pids = db.prepare('SELECT * FROM parts WHERE sheet_id = ?').all(s.id) as PartRow[]
-          for (const p of pids) {
-            snapshot.push({ table: 'parts', data: p })
-            const probs = db.prepare('SELECT * FROM problems WHERE part_id = ?').all(p.id) as ProblemRow[]
-            for (const pr of probs) snapshot.push({ table: 'problems', data: pr })
-          }
-          const dps = db.prepare('SELECT * FROM problems WHERE sheet_id = ? AND part_id IS NULL').all(s.id) as ProblemRow[]
-          for (const pr of dps) snapshot.push({ table: 'problems', data: pr })
-          db.prepare('DELETE FROM problems WHERE part_id IN (SELECT id FROM parts WHERE sheet_id = ?)').run(s.id)
-          db.prepare('DELETE FROM problems WHERE sheet_id = ?').run(s.id)
-          db.prepare('DELETE FROM parts WHERE sheet_id = ?').run(s.id)
-          db.prepare('DELETE FROM sheets WHERE id = ?').run(s.id)
-        }
-        db.prepare('DELETE FROM folders WHERE id = ?').run(row.id)
+      snapshotFolderTree(id, snapshot)
+      const folderIds = snapshot.filter(e => e.table === 'folders').map(e => e.data.id as number)
+      if (folderIds.length > 0) {
+        db.prepare(`DELETE FROM folders WHERE id IN (${folderIds.map(() => '?').join(',')})`).run(...folderIds)
       }
     })()
     if (snapshot.length > 0) {
-      const folder = snapshot[0].data as FolderRow
-      logOperation(`删除文件夹"${folder.name}"（含 ${snapshot.length - 1} 项内容）`, snapshot)
+      const folder = snapshot.find(e => e.table === 'folders' && e.data.id === id)?.data ?? snapshot.find(e => e.table === 'folders')?.data
+      logOperation(`删除文件夹"${folder?.name ?? ''}"（含 ${snapshot.length - 1} 项内容）`, snapshot)
     }
     return { success: true }
   })
@@ -102,20 +131,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('sheet:delete', (_e, { id }: { id: number }) => {
     const snapshot: any[] = []
     db.transaction(() => {
-      const sheet = db.prepare('SELECT * FROM sheets WHERE id = ?').get(id) as SheetRow | undefined
-      if (!sheet) return
-      snapshot.push({ table: 'sheets', data: sheet })
-      const pids = db.prepare('SELECT * FROM parts WHERE sheet_id = ?').all(id) as PartRow[]
-      for (const p of pids) {
-        snapshot.push({ table: 'parts', data: p })
-        const probs = db.prepare('SELECT * FROM problems WHERE part_id = ?').all(p.id) as ProblemRow[]
-        for (const pr of probs) snapshot.push({ table: 'problems', data: pr })
-      }
-      const dps = db.prepare('SELECT * FROM problems WHERE sheet_id = ? AND part_id IS NULL').all(id) as ProblemRow[]
-      for (const pr of dps) snapshot.push({ table: 'problems', data: pr })
-      db.prepare('DELETE FROM problems WHERE part_id IN (SELECT id FROM parts WHERE sheet_id = ?)').run(id)
-      db.prepare('DELETE FROM problems WHERE sheet_id = ?').run(id)
-      db.prepare('DELETE FROM parts WHERE sheet_id = ?').run(id)
+      snapshotSheetTree(id, snapshot)
       db.prepare('DELETE FROM sheets WHERE id = ?').run(id)
     })()
     if (snapshot.length > 0) {
@@ -139,12 +155,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('part:delete', (_e, { id }: { id: number }) => {
     const snapshot: any[] = []
     db.transaction(() => {
-      const part = db.prepare('SELECT * FROM parts WHERE id = ?').get(id) as PartRow | undefined
-      if (!part) return
-      snapshot.push({ table: 'parts', data: part })
-      const probs = db.prepare('SELECT * FROM problems WHERE part_id = ?').all(id) as ProblemRow[]
-      for (const pr of probs) snapshot.push({ table: 'problems', data: pr })
-      db.prepare('DELETE FROM problems WHERE part_id = ?').run(id)
+      snapshotPartTree(id, snapshot)
       db.prepare('DELETE FROM parts WHERE id = ?').run(id)
     })()
     if (snapshot.length > 0) {
@@ -175,7 +186,8 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('problem:toggle', (_e, { id }: { id: number }) => {
-    const problem = db.prepare('SELECT completed FROM problems WHERE id = ?').get(id) as ProblemRow
+    const problem = db.prepare('SELECT completed FROM problems WHERE id = ?').get(id) as ProblemRow | undefined
+    if (!problem) return { success: false }
     db.prepare('UPDATE problems SET completed = ? WHERE id = ?').run(problem.completed ? 0 : 1, id)
     return { success: true }
   })
@@ -212,62 +224,67 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('problem:batchDelete', (_e, { ids }: { ids: number[] }) => {
-    const stmt = db.prepare('DELETE FROM problems WHERE id = ?')
+    const snapshot: any[] = []
     const transaction = db.transaction(() => {
-      for (const id of ids) stmt.run(id)
+      for (const id of ids) {
+        const prob = db.prepare('SELECT * FROM problems WHERE id = ?').get(id) as ProblemRow | undefined
+        if (!prob) continue
+        snapshot.push({ table: 'problems', data: prob })
+        db.prepare('DELETE FROM problems WHERE id = ?').run(id)
+      }
     })
     transaction()
+    if (snapshot.length > 0) {
+      logOperation(`批量删除了 ${snapshot.length} 项内容`, snapshot)
+    }
     return { success: true }
   })
 
   ipcMain.handle('part:batchDelete', (_e, { ids }: { ids: number[] }) => {
+    const snapshot: any[] = []
     const transaction = db.transaction(() => {
       for (const id of ids) {
-        db.prepare('DELETE FROM problems WHERE part_id = ?').run(id)
+        snapshotPartTree(id, snapshot)
         db.prepare('DELETE FROM parts WHERE id = ?').run(id)
       }
     })
     transaction()
+    if (snapshot.length > 0) {
+      logOperation(`批量删除了 ${snapshot.length} 项内容`, snapshot)
+    }
     return { success: true }
   })
 
   ipcMain.handle('sheet:batchDelete', (_e, { ids }: { ids: number[] }) => {
+    const snapshot: any[] = []
     const transaction = db.transaction(() => {
       for (const id of ids) {
-        db.prepare('DELETE FROM problems WHERE part_id IN (SELECT id FROM parts WHERE sheet_id = ?)').run(id)
-        db.prepare('DELETE FROM problems WHERE sheet_id = ?').run(id)
-        db.prepare('DELETE FROM parts WHERE sheet_id = ?').run(id)
+        snapshotSheetTree(id, snapshot)
         db.prepare('DELETE FROM sheets WHERE id = ?').run(id)
       }
     })
     transaction()
+    if (snapshot.length > 0) {
+      logOperation(`批量删除了 ${snapshot.length} 项内容`, snapshot)
+    }
     return { success: true }
   })
 
   ipcMain.handle('folder:batchDelete', (_e, { ids }: { ids: number[] }) => {
+    const snapshot: any[] = []
     const transaction = db.transaction(() => {
       for (const id of ids) {
-        const allIds = db.prepare(`
-          WITH RECURSIVE cte AS (
-            SELECT id FROM folders WHERE id = ?
-            UNION ALL
-            SELECT f.id FROM folders f JOIN cte ON f.parent_id = cte.id
-          )
-          SELECT id FROM cte ORDER BY id DESC
-        `).all(id) as { id: number }[]
-        for (const row of allIds) {
-          const sids = (db.prepare('SELECT id FROM sheets WHERE folder_id = ?').all(row.id) as { id: number }[]).map(r => r.id)
-          for (const sid of sids) {
-            db.prepare('DELETE FROM problems WHERE part_id IN (SELECT id FROM parts WHERE sheet_id = ?)').run(sid)
-            db.prepare('DELETE FROM problems WHERE sheet_id = ?').run(sid)
-            db.prepare('DELETE FROM parts WHERE sheet_id = ?').run(sid)
-            db.prepare('DELETE FROM sheets WHERE id = ?').run(sid)
-          }
-          db.prepare('DELETE FROM folders WHERE id = ?').run(row.id)
+        snapshotFolderTree(id, snapshot)
+        const folderIds = snapshot.filter(e => e.table === 'folders').map(e => e.data.id as number)
+        if (folderIds.length > 0) {
+          db.prepare(`DELETE FROM folders WHERE id IN (${folderIds.map(() => '?').join(',')})`).run(...folderIds)
         }
       }
     })
     transaction()
+    if (snapshot.length > 0) {
+      logOperation(`批量删除了 ${snapshot.length} 项内容`, snapshot)
+    }
     return { success: true }
   })
 
@@ -372,11 +389,13 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('search:global', (_e, { query }: { query: string }) => {
-    const pattern = `%${query}%`
-    const folders = db.prepare("SELECT id, name, parent_id, 'folder' as type FROM folders WHERE name LIKE ?").all(pattern) as any[]
-    const sheets = db.prepare("SELECT s.id, s.name, s.folder_id, 'sheet' as type FROM sheets s WHERE s.name LIKE ?").all(pattern) as any[]
-    const parts = db.prepare("SELECT p.id, p.title as name, p.sheet_id, COALESCE(s.name, '') as sheet_name, 'part' as type FROM parts p LEFT JOIN sheets s ON p.sheet_id = s.id WHERE p.title LIKE ?").all(pattern) as any[]
-    const problems = db.prepare("SELECT p.id, p.name, p.part_id, COALESCE(p.sheet_id, pt.sheet_id) as sheet_id, 'problem' as type FROM problems p LEFT JOIN parts pt ON p.part_id = pt.id WHERE p.name LIKE ?").all(pattern) as any[]
+    const escaped = query.replace(/[\\%_]/g, m => `\\${m}`)
+    const pattern = `%${escaped}%`
+    const like = "name LIKE ? ESCAPE '\\'"
+    const folders = db.prepare(`SELECT id, name, parent_id, 'folder' as type FROM folders WHERE ${like}`).all(pattern) as any[]
+    const sheets = db.prepare(`SELECT s.id, s.name, s.folder_id, 'sheet' as type FROM sheets s WHERE s.${like}`).all(pattern) as any[]
+    const parts = db.prepare(`SELECT p.id, p.title as name, p.sheet_id, COALESCE(s.name, '') as sheet_name, 'part' as type FROM parts p LEFT JOIN sheets s ON p.sheet_id = s.id WHERE p.${like}`).all(pattern) as any[]
+    const problems = db.prepare(`SELECT p.id, p.name, p.part_id, COALESCE(p.sheet_id, pt.sheet_id) as sheet_id, 'problem' as type FROM problems p LEFT JOIN parts pt ON p.part_id = pt.id WHERE p.${like}`).all(pattern) as any[]
     return { folders, sheets, parts, problems }
   })
 
@@ -406,62 +425,64 @@ export function registerIpcHandlers(): void {
 
     let md = ''
     const folderMap = new Map<number | null, FolderRow[]>()
+    const foldersById = new Map<number, FolderRow>()
     for (const f of folders) {
+      foldersById.set(f.id, f)
       const pk = f.parent_id ?? 0
       if (!folderMap.has(pk)) folderMap.set(pk, [])
       folderMap.get(pk)!.push(f)
     }
 
-    function renderDescription(desc: string, baseMd: string): string {
-      if (!desc) return baseMd
-      const descLines = desc.split('\n')
-      for (const dl of descLines) {
-        baseMd += `> ${dl}\n`
+    const folderPathCache = new Map<number, string>()
+    function folderPath(folder: FolderRow): string {
+      const cached = folderPathCache.get(folder.id)
+      if (cached !== undefined) return cached
+      const names: string[] = [folder.name]
+      let parentId = folder.parent_id
+      while (parentId != null) {
+        const parent = foldersById.get(parentId)
+        if (!parent) break
+        names.unshift(parent.name)
+        parentId = parent.parent_id
       }
-      return baseMd + '\n'
+      const path = names.join('/')
+      folderPathCache.set(folder.id, path)
+      return path
     }
 
-    function renderFolders(parentId: number | null, level: number): void {
-      const children = folderMap.get(parentId ?? 0) ?? []
-      for (const folder of children) {
-        const h = '#'.repeat(Math.max(1, level + 1))
-        md += `${h} ${folder.name}\n`
-        md = renderDescription(folder.description || '', md)
-        renderSheetsInFolder(folder.id, level + 1)
-        renderFolders(folder.id, level + 1)
-      }
+    function renderDescription(desc: string): void {
+      if (!desc) return
+      for (const dl of desc.split('\n')) md += `> ${dl}\n`
+      md += '\n'
     }
 
-    function renderSheetsInFolder(folderId: number | null, baseLevel: number): void {
-      const sheetList = sheets.filter(s => (s.folder_id ?? 0) === (folderId ?? 0))
-      for (const sheet of sheetList) {
-        const h = '#'.repeat(baseLevel + 1)
-        md += `${h} ${sheet.name}\n`
-        md = renderDescription(sheet.description || '', md)
-        const sp = partsList.filter(p => p.sheet_id === sheet.id)
-        if (sp.length > 0) {
-          for (const part of sp) {
-            const ph = '#'.repeat(baseLevel + 2)
-            md += `${ph} ${part.title}\n\n`
-            const pp = problems.filter(p => p.part_id === part.id)
-            for (const prob of pp) {
-              md += `- [${prob.completed ? 'x' : ' '}] ${prob.name}\n`
-            }
-            md += '\n'
-          }
-        }
-        const dp = problems.filter(p => p.sheet_id === sheet.id && !p.part_id)
-        if (dp.length > 0) {
-          for (const prob of dp) {
-            md += `- [${prob.completed ? 'x' : ' '}] ${prob.name}\n`
-          }
-          md += '\n'
-        }
+    function renderProblems(probList: ProblemRow[]): void {
+      for (const prob of probList) {
+        md += `- [${prob.completed ? 'x' : ' '}] ${prob.name}\n`
       }
+      if (probList.length > 0) md += '\n'
     }
 
-    renderFolders(null, 0)
-    renderSheetsInFolder(null, 0)
+    function renderSheet(sheet: SheetRow): void {
+      md += `## ${sheet.name}\n`
+      renderDescription(sheet.description || '')
+      const sp = partsList.filter(p => p.sheet_id === sheet.id)
+      for (const part of sp) {
+        md += `### ${part.title}\n\n`
+        renderProblems(problems.filter(p => p.part_id === part.id))
+      }
+      renderProblems(problems.filter(p => p.sheet_id === sheet.id && !p.part_id))
+    }
+
+    function renderFolder(folder: FolderRow): void {
+      md += `# ${folderPath(folder)}\n`
+      renderDescription(folder.description || '')
+      for (const sheet of sheets.filter(s => (s.folder_id ?? 0) === folder.id)) renderSheet(sheet)
+      for (const child of folderMap.get(folder.id) ?? []) renderFolder(child)
+    }
+
+    for (const sheet of sheets.filter(s => (s.folder_id ?? 0) === 0)) renderSheet(sheet)
+    for (const folder of folderMap.get(0) ?? []) renderFolder(folder)
     writeFileSync(filePath, md, 'utf-8')
     return { success: true }
   })
@@ -628,20 +649,36 @@ export function registerIpcHandlers(): void {
     if (!log) return { success: false, error: '日志不存在' }
     const snapshot = JSON.parse(log.snapshot) as { table: string; data: Record<string, any> }[]
 
-    db.transaction(() => {
-      for (const entry of snapshot) {
-        const d = entry.data
-        if (entry.table === 'folders') {
+    const byTable: Record<string, Record<string, any>[]> = { folders: [], sheets: [], parts: [], problems: [] }
+    for (const entry of snapshot) {
+      byTable[entry.table]?.push(entry.data)
+    }
+
+    try {
+      db.pragma('foreign_keys = OFF')
+      db.transaction(() => {
+        const insertFolders = byTable.folders.sort((a, b) => a.id - b.id)
+        for (const d of insertFolders) {
           db.prepare('INSERT OR IGNORE INTO folders (id, name, description, parent_id, sort_order) VALUES (?, ?, ?, ?, ?)').run(d.id, d.name, d.description || '', d.parent_id, d.sort_order || 0)
-        } else if (entry.table === 'sheets') {
+        }
+        const insertSheets = byTable.sheets.sort((a, b) => a.id - b.id)
+        for (const d of insertSheets) {
           db.prepare('INSERT OR IGNORE INTO sheets (id, name, description, folder_id, sort_order) VALUES (?, ?, ?, ?, ?)').run(d.id, d.name, d.description || '', d.folder_id, d.sort_order || 0)
-        } else if (entry.table === 'parts') {
+        }
+        const insertParts = byTable.parts.sort((a, b) => a.id - b.id)
+        for (const d of insertParts) {
           db.prepare('INSERT OR IGNORE INTO parts (id, title, sheet_id, sort_order) VALUES (?, ?, ?, ?)').run(d.id, d.title, d.sheet_id, d.sort_order || 0)
-        } else if (entry.table === 'problems') {
+        }
+        const insertProblems = byTable.problems.sort((a, b) => a.id - b.id)
+        for (const d of insertProblems) {
           db.prepare('INSERT OR IGNORE INTO problems (id, name, part_id, sheet_id, sort_order, completed) VALUES (?, ?, ?, ?, ?, ?)').run(d.id, d.name, d.part_id, d.sheet_id, d.sort_order || 0, d.completed || 0)
         }
-      }
-    })()
+      })()
+      db.pragma('foreign_keys = ON')
+    } catch (e) {
+      db.pragma('foreign_keys = ON')
+      return { success: false, error: '回滚失败：' + (e instanceof Error ? e.message : String(e)) }
+    }
     return { success: true }
   })
 

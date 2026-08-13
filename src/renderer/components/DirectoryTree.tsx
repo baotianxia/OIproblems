@@ -130,6 +130,7 @@ export default function DirectoryTreeComponent(): JSX.Element {
 
     if (info.nativeEvent) {
       const target = info.nativeEvent.target as HTMLElement
+      if (target.closest('.ant-tree-switcher')) return
       if (!target.closest('.ant-tree-node-content-wrapper')) {
         selectNode(null)
         return
@@ -366,7 +367,13 @@ export default function DirectoryTreeComponent(): JSX.Element {
     return items
   }
 
-  const convertToDataNode = (node: TreeNode): DataNode => ({
+  const convertToDataNode = (node: TreeNode): DataNode & {
+    type: string
+    id: number
+    parent_id?: number | null
+    folder_id?: number
+    sheet_id?: number
+  } => ({
     key: node.key,
     title: node.title,
     type: node.type,

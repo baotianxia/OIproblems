@@ -209,23 +209,11 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
       okText: '删除',
       okType: 'danger',
       onOk: async () => {
-        const snapshot: any[] = []
         if (selectedFolderIds.size > 0) {
-          for (const fid of selectedFolderIds) {
-            const f = subFolders.find(x => x.id === fid)
-            if (f) snapshot.push({ table: 'folders', data: { id: f.id, name: f.name, description: f.description, parent_id: f.parent_id, sort_order: 0 } })
-          }
           await window.api.folder.batchDelete({ ids: [...selectedFolderIds] })
         }
         if (selectedSheetIds.size > 0) {
-          for (const sid of selectedSheetIds) {
-            const s = sheets.find(x => x.id === sid)
-            if (s) snapshot.push({ table: 'sheets', data: { id: s.id, name: s.name, description: s.description, folder_id: s.folder_id, sort_order: 0 } })
-          }
           await window.api.sheet.batchDelete({ ids: [...selectedSheetIds] })
-        }
-        if (snapshot.length > 0) {
-          await window.api.operation.log({ description: `批量删除了 ${snapshot.length} 项内容`, snapshot })
         }
         message.success('已删除')
         setSelectMode(false)

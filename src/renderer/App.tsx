@@ -4,6 +4,7 @@ import { FolderAddOutlined, OrderedListOutlined, ImportOutlined, ExportOutlined,
 import { submitOnEnter } from './utils'
 import { AutoFocusInput } from './components/AutoFocusInput'
 import { AppProvider, useAppContext } from './context/AppContext'
+import type { SelectedNode } from './types'
 import DirectoryTree from './components/DirectoryTree'
 import SheetContent from './components/SheetContent'
 import FolderContent from './components/FolderContent'
@@ -62,7 +63,12 @@ function AppLayout(): JSX.Element {
     if (!node) return { parentId: undefined, hint: '将创建在根目录' }
     if (node.type === 'folder') return { parentId: node.id, hint: `将在"${node.name}"下创建` }
     if (node.type === 'sheet' || node.type === 'part') {
-      const fid = node.type === 'sheet' ? node.folderId : undefined
+      let fid = node.type === 'sheet' ? node.folderId : undefined
+      if (fid == null) {
+        const data = await window.api.tree.get()
+        const sheet = data.sheets.find(s => s.id === node.id)
+        fid = sheet?.folder_id ?? undefined
+      }
       if (fid != null) {
         const data = await window.api.tree.get()
         const folder = data.folders.find(f => f.id === fid)

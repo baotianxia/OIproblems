@@ -60,7 +60,7 @@ export default function PartSection({ part, onRefresh, onAddProblem, selected, h
     <div
       ref={domRef}
       id={`part-${part.id}`}
-      onClick={(e) => { e.stopPropagation(); onSelect?.(part.id, part.title) }}
+      onClick={(e) => { e.stopPropagation(); if (!selectMode) onSelect?.(part.id, part.title) }}
       style={{
         marginBottom: 16,
         border: `2px solid ${selected ? token.colorPrimary : token.colorBorderSecondary}`,
