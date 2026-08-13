@@ -134,7 +134,11 @@ const handleDragEnd = useCallback((event: DragEndEvent) => {
   const applySort = async (mode: 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'manual') => {
     const dir = (mode === 'name-asc' || mode === 'time-asc') ? 1 : -1
     const sorted = [...orderedProblems].sort((a, b) => {
-      if (mode === 'manual') return a.drag_order - b.drag_order
+      if (mode === 'manual') {
+        const d = a.drag_order - b.drag_order
+        if (d !== 0) return d
+        return a.id - b.id
+      }
       if (mode === 'name-asc' || mode === 'name-desc') {
         return a.name.localeCompare(b.name, 'zh-Hans-CN') * dir
       }
