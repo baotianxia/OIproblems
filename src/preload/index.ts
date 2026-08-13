@@ -38,6 +38,10 @@ const api = {
       ipcRenderer.invoke('sheet:rename', params),
     delete: (params: { id: number }) =>
       ipcRenderer.invoke('sheet:delete', params),
+    move: (params: { id: number; folderId?: number | null }) =>
+      ipcRenderer.invoke('sheet:move', params),
+    reorder: (params: { items: { id: number; sortOrder: number }[] }) =>
+      ipcRenderer.invoke('sheet:reorder', params),
     getById: (params: { id: number }) =>
       ipcRenderer.invoke('sheet:getById', params),
     updateDescription: (params: { id: number; description: string }) =>
@@ -52,6 +56,10 @@ const api = {
       ipcRenderer.invoke('folder:rename', params),
     delete: (params: { id: number }) =>
       ipcRenderer.invoke('folder:delete', params),
+    move: (params: { id: number; parentId?: number | null }) =>
+      ipcRenderer.invoke('folder:move', params),
+    reorder: (params: { items: { id: number; sortOrder: number }[] }) =>
+      ipcRenderer.invoke('folder:reorder', params),
     updateDescription: (params: { id: number; description: string }) =>
       ipcRenderer.invoke('folder:updateDescription', params),
     batchDelete: (params: { ids: number[] }) =>

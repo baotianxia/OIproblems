@@ -86,6 +86,37 @@ export function registerIpcHandlers(): void {
     return { id: Number(result.lastInsertRowid) }
   })
 
+  ipcMain.handle('folder:move', (_e, { id, parentId }: { id: number; parentId?: number | null }) => {
+    const folder = db.prepare('SELECT id FROM folders WHERE id = ?').get(id) as { id: number } | undefined
+    if (!folder) return { success: false, error: '文件夹不存在' }
+    if (parentId != null) {
+      if (parentId === id) return { success: false, error: '不能移动到自身' }
+      const descendant = db.prepare(`
+        WITH RECURSIVE cte AS (
+          SELECT id FROM folders WHERE id = ?
+          UNION ALL
+          SELECT f.id FROM folders f JOIN cte ON f.parent_id = cte.id
+        )
+        SELECT id FROM cte WHERE id = ?
+      `).get(id, parentId) as { id: number } | undefined
+      if (descendant) return { success: false, error: '不能移动到自己的子文件夹中' }
+    }
+    db.transaction(() => {
+      const last = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM folders WHERE parent_id IS ?').get(parentId ?? null) as { m: number }
+      db.prepare('UPDATE folders SET parent_id = ?, sort_order = ? WHERE id = ?').run(parentId ?? null, last.m + 1, id)
+    })()
+    return { success: true }
+  })
+
+  ipcMain.handle('folder:reorder', (_e, { items }: { items: { id: number; sortOrder: number }[] }) => {
+    const stmt = db.prepare('UPDATE folders SET sort_order = ? WHERE id = ?')
+    const transaction = db.transaction(() => {
+      for (const item of items) stmt.run(item.sortOrder, item.id)
+    })
+    transaction()
+    return { success: true }
+  })
+
   ipcMain.handle('folder:rename', (_e, { id, name }: { id: number; name: string }) => {
     db.prepare('UPDATE folders SET name = ? WHERE id = ?').run(name, id)
     return { success: true }
@@ -116,6 +147,29 @@ export function registerIpcHandlers(): void {
     const stmt = db.prepare('INSERT INTO sheets (name, folder_id) VALUES (?, ?)')
     const result = stmt.run(name, folderId ?? null)
     return { id: Number(result.lastInsertRowid) }
+  })
+
+  ipcMain.handle('sheet:move', (_e, { id, folderId }: { id: number; folderId?: number | null }) => {
+    const sheet = db.prepare('SELECT id FROM sheets WHERE id = ?').get(id) as { id: number } | undefined
+    if (!sheet) return { success: false, error: '题单不存在' }
+    if (folderId != null) {
+      const folder = db.prepare('SELECT id FROM folders WHERE id = ?').get(folderId) as { id: number } | undefined
+      if (!folder) return { success: false, error: '目标文件夹不存在' }
+    }
+    db.transaction(() => {
+      const last = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM sheets WHERE folder_id IS ?').get(folderId ?? null) as { m: number }
+      db.prepare('UPDATE sheets SET folder_id = ?, sort_order = ? WHERE id = ?').run(folderId ?? null, last.m + 1, id)
+    })()
+    return { success: true }
+  })
+
+  ipcMain.handle('sheet:reorder', (_e, { items }: { items: { id: number; sortOrder: number }[] }) => {
+    const stmt = db.prepare('UPDATE sheets SET sort_order = ? WHERE id = ?')
+    const transaction = db.transaction(() => {
+      for (const item of items) stmt.run(item.sortOrder, item.id)
+    })
+    transaction()
+    return { success: true }
   })
 
   ipcMain.handle('sheet:rename', (_e, { id, name }: { id: number; name: string }) => {

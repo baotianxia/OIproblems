@@ -3,10 +3,11 @@ import { flushSync } from 'react-dom'
 import { Tree, Dropdown, Modal, Input, message, Spin, Typography } from 'antd'
 import type { MenuProps } from 'antd'
 import type { DataNode } from 'antd/es/tree'
-import { PlusOutlined, FolderOutlined, FileOutlined, OrderedListOutlined } from '@ant-design/icons'
+import { PlusOutlined, FolderOutlined, FileOutlined, OrderedListOutlined, ArrowUpOutlined } from '@ant-design/icons'
 import { submitOnEnter } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 import { useAppContext } from '../context/AppContext'
+import MoveModal from './MoveModal'
 import type { TreeNode } from '../types'
 
 let _navHighlightKey = 0
@@ -85,6 +86,7 @@ export default function DirectoryTreeComponent(): JSX.Element {
   const contextNodeRef = useRef<{ key: string; type: string; id: number; name?: string; parent_id?: number | null; folder_id?: number; sheet_id?: number } | null>(null)
   const [, forceUpdate] = useState(0)
   const expandedLoaded = useRef(false)
+  const [moveTarget, setMoveTarget] = useState<{ type: 'folder' | 'sheet'; id: number; name: string; parentId?: number | null } | null>(null)
 
   const persistExpandedKeys = useCallback(async (keys: React.Key[]) => {
     await window.api.ui.set('expandedKeys', JSON.stringify(keys))
@@ -335,6 +337,34 @@ export default function DirectoryTreeComponent(): JSX.Element {
     })
   }
 
+  const moveItem = () => {
+    const node = contextNodeRef.current
+    if (!node || (node.type !== 'folder' && node.type !== 'sheet')) return
+    setMoveTarget({
+      type: node.type,
+      id: node.id,
+      name: node.name || '',
+      parentId: node.type === 'folder' ? node.parent_id : node.folder_id
+    })
+  }
+
+  const handleMoveConfirm = async (parentId: number | null) => {
+    const target = moveTarget
+    if (!target) return { success: false, error: '未选择目标' }
+    if (parentId === target.parentId) return { success: false, error: '目标与当前位置相同' }
+    const result = target.type === 'folder'
+      ? await window.api.folder.move({ id: target.id, parentId })
+      : await window.api.sheet.move({ id: target.id, folderId: parentId })
+    if (result.success) {
+      if (selectedNode?.id === target.id && selectedNode.type === target.type) {
+        selectNode(null)
+      }
+      await refreshTree()
+      bumpContentReload()
+    }
+    return result
+  }
+
   const getContextMenuItems = (): MenuProps['items'] => {
     const items: MenuProps['items'] = [
       {
@@ -357,6 +387,14 @@ export default function DirectoryTreeComponent(): JSX.Element {
         label: '重命名',
         onClick: renameItem
       })
+      if (contextNodeRef.current.type === 'folder' || contextNodeRef.current.type === 'sheet') {
+        items.push({
+          key: 'move',
+          icon: <ArrowUpOutlined />,
+          label: '移动到...',
+          onClick: moveItem
+        })
+      }
       items.push({
         key: 'delete',
         label: '删除',
@@ -393,7 +431,8 @@ export default function DirectoryTreeComponent(): JSX.Element {
     : []
 
   return (
-    <Dropdown
+    <>
+      <Dropdown
       menu={{ items: getContextMenuItems() }}
       trigger={['contextMenu']}
       onOpenChange={open => { if (!open) contextNodeRef.current = null }}
@@ -415,5 +454,14 @@ export default function DirectoryTreeComponent(): JSX.Element {
         />
       </div>
     </Dropdown>
+      <MoveModal
+        visible={!!moveTarget}
+        type={moveTarget?.type ?? 'folder'}
+        itemName={moveTarget?.name ?? ''}
+        excludeId={moveTarget?.type === 'folder' ? moveTarget.id : undefined}
+        onClose={() => setMoveTarget(null)}
+        onConfirm={handleMoveConfirm}
+      />
+    </>
   )
 }

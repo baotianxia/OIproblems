@@ -5,6 +5,8 @@ interface ApiType {
     create(params: { name: string; parentId?: number }): Promise<{ id: number }>
     rename(params: { id: number; name: string }): Promise<{ success: boolean }>
     delete(params: { id: number }): Promise<{ success: boolean }>
+    move(params: { id: number; parentId?: number | null }): Promise<{ success: boolean; error?: string }>
+    reorder(params: { items: { id: number; sortOrder: number }[] }): Promise<{ success: boolean }>
     updateDescription(params: { id: number; description: string }): Promise<{ success: boolean }>
     batchDelete(params: { ids: number[] }): Promise<{ success: boolean }>
   }
@@ -12,6 +14,8 @@ interface ApiType {
     create(params: { name: string; folderId?: number }): Promise<{ id: number }>
     rename(params: { id: number; name: string }): Promise<{ success: boolean }>
     delete(params: { id: number }): Promise<{ success: boolean }>
+    move(params: { id: number; folderId?: number | null }): Promise<{ success: boolean; error?: string }>
+    reorder(params: { items: { id: number; sortOrder: number }[] }): Promise<{ success: boolean }>
     getById(params: { id: number }): Promise<SheetDetail | null>
     updateDescription(params: { id: number; description: string }): Promise<{ success: boolean }>
     batchDelete(params: { ids: number[] }): Promise<{ success: boolean }>
