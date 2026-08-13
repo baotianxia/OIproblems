@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { getScrollPos, setScrollPos } from './scrollCache'
-import { Typography, Space, Spin, Empty, Button, Modal, Input, message, Dropdown, Checkbox } from 'antd'
+import { Typography, Space, Spin, Empty, Button, Modal, Input, message, Dropdown, Checkbox, Tooltip } from 'antd'
 import type { MenuProps } from 'antd'
 import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined, SelectOutlined, DeleteOutlined, CheckSquareOutlined, ArrowUpOutlined, HolderOutlined } from '@ant-design/icons'
 import { renderMarkdown, submitOnEnter, handleLinkPaste } from '../utils'
@@ -48,7 +48,10 @@ function SortableRow({ id, disabled, isDark, onClick, checked, onCheckChange, ac
       }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={onClick}
+      onClick={e => {
+        if ((e.target as HTMLElement).closest('.row-handle')) return
+        onClick?.()
+      }}
     >
       {disabled ? (
         <span style={{ display: 'inline-flex', justifyContent: 'center', width: 18 }} onClick={e => e.stopPropagation()}>
@@ -58,8 +61,8 @@ function SortableRow({ id, disabled, isDark, onClick, checked, onCheckChange, ac
         <span
           {...attributes}
           {...listeners}
+          className="row-handle"
           style={{ cursor: 'grab', display: 'inline-flex', color: isDark ? '#666' : '#999' }}
-          onPointerDown={e => e.stopPropagation()}
         >
           <HolderOutlined />
         </span>
@@ -67,7 +70,7 @@ function SortableRow({ id, disabled, isDark, onClick, checked, onCheckChange, ac
       <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {children}
       </span>
-      <span style={{ visibility: hover && !disabled ? 'visible' : 'hidden', display: 'inline-flex', gap: 2 }}>
+      <span style={{ visibility: hover && !disabled ? 'visible' : 'hidden', display: 'inline-flex', gap: 2 }} onClick={e => e.stopPropagation()}>
         {actions}
       </span>
     </div>
@@ -440,9 +443,15 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                       onClick={() => { if (!selectMode) selectNode({ id: f.id, type: 'folder', name: f.name }) }}
                       actions={
                         <>
-                          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => renameFolder(f.id, f.name)} />
-                          <Button type="text" size="small" icon={<ArrowUpOutlined />} onClick={() => setMoveTarget({ type: 'folder', id: f.id, name: f.name, parentId: f.parent_id })} />
-                          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteFolder(f.id)} />
+                          <Tooltip title="重命名">
+                            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => renameFolder(f.id, f.name)} />
+                          </Tooltip>
+                          <Tooltip title="移动到...">
+                            <Button type="text" size="small" icon={<ArrowUpOutlined />} onClick={() => setMoveTarget({ type: 'folder', id: f.id, name: f.name, parentId: f.parent_id })} />
+                          </Tooltip>
+                          <Tooltip title="删除">
+                            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteFolder(f.id)} />
+                          </Tooltip>
                         </>
                       }
                     >
@@ -499,9 +508,15 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                       onClick={() => { if (!selectMode) selectNode({ id: s.id, type: 'sheet', name: s.name }) }}
                       actions={
                         <>
-                          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => renameSheet(s.id, s.name)} />
-                          <Button type="text" size="small" icon={<ArrowUpOutlined />} onClick={() => setMoveTarget({ type: 'sheet', id: s.id, name: s.name, parentId: s.folder_id })} />
-                          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteSheet(s.id)} />
+                          <Tooltip title="重命名">
+                            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => renameSheet(s.id, s.name)} />
+                          </Tooltip>
+                          <Tooltip title="移动到...">
+                            <Button type="text" size="small" icon={<ArrowUpOutlined />} onClick={() => setMoveTarget({ type: 'sheet', id: s.id, name: s.name, parentId: s.folder_id })} />
+                          </Tooltip>
+                          <Tooltip title="删除">
+                            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteSheet(s.id)} />
+                          </Tooltip>
                         </>
                       }
                     >
