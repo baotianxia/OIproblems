@@ -2,79 +2,18 @@ import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react
 import { getScrollPos, setScrollPos } from './scrollCache'
 import { Typography, Space, Spin, Empty, Button, Modal, Input, message, Dropdown, Checkbox, Tooltip } from 'antd'
 import type { MenuProps } from 'antd'
-import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined, SelectOutlined, DeleteOutlined, CheckSquareOutlined, ArrowUpOutlined, HolderOutlined } from '@ant-design/icons'
+import { FolderOutlined, OrderedListOutlined, EditOutlined, CopyOutlined, ThunderboltOutlined, SelectOutlined, DeleteOutlined, CheckSquareOutlined, ArrowUpOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons'
 import { renderMarkdown, submitOnEnter, handleLinkPaste } from '../utils'
 import { AutoFocusInput } from './AutoFocusInput'
 import { useAppContext } from '../context/AppContext'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import MoveModal from './MoveModal'
+import SortableRow from './SortableRow'
 
 interface Props {
   folderId: number
-}
-
-function SortableRow({ id, disabled, isDark, onClick, checked, onCheckChange, actions, children }: {
-  id: number
-  disabled: boolean
-  isDark: boolean
-  onClick?: () => void
-  checked?: boolean
-  onCheckChange?: (v: boolean) => void
-  actions?: React.ReactNode
-  children: React.ReactNode
-}): JSX.Element {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled })
-  const [hover, setHover] = useState(false)
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '6px 12px',
-        border: `1px solid ${isDark ? '#333' : '#d9d9d9'}`,
-        borderRadius: 6,
-        background: isDragging ? (isDark ? '#2a2a2a' : '#fafafa') : hover ? (isDark ? '#262626' : '#f5f5f5') : 'transparent',
-        cursor: onClick ? 'pointer' : 'default',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-        zIndex: isDragging ? 10 : undefined,
-        position: 'relative'
-      }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onClick={e => {
-        if ((e.target as HTMLElement).closest('.row-handle')) return
-        onClick?.()
-      }}
-    >
-      {disabled ? (
-        <span style={{ display: 'inline-flex', justifyContent: 'center', width: 18 }} onClick={e => e.stopPropagation()}>
-          <Checkbox checked={checked} onChange={e => onCheckChange?.(e.target.checked)} />
-        </span>
-      ) : (
-        <span
-          {...attributes}
-          {...listeners}
-          className="row-handle"
-          style={{ cursor: 'grab', display: 'inline-flex', color: isDark ? '#666' : '#999' }}
-        >
-          <HolderOutlined />
-        </span>
-      )}
-      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {children}
-      </span>
-      <span style={{ visibility: hover && !disabled ? 'visible' : 'hidden', display: 'inline-flex', gap: 2 }} onClick={e => e.stopPropagation()}>
-        {actions}
-      </span>
-    </div>
-  )
 }
 
 export default function FolderContent({ folderId }: Props): JSX.Element {
@@ -267,6 +206,52 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     message.success('描述已复制到剪贴板')
   }
 
+  const createFolder = () => {
+    let name = ''
+    Modal.confirm({
+      title: '新建子文件夹',
+      autoFocusButton: null,
+      content: (
+        <AutoFocusInput
+          placeholder="输入文件夹名称"
+          onChange={e => { name = e.target.value }}
+          onKeyDown={submitOnEnter}
+        />
+      ),
+      onOk: async () => {
+        if (!name.trim()) return
+        await window.api.folder.create({ name: name.trim(), parentId: folderId })
+        message.success('文件夹已创建')
+        bumpDataVersion()
+        await refreshTree()
+        await loadData()
+      }
+    })
+  }
+
+  const createSheet = () => {
+    let name = ''
+    Modal.confirm({
+      title: '新建题单',
+      autoFocusButton: null,
+      content: (
+        <AutoFocusInput
+          placeholder="输入题单名称"
+          onChange={e => { name = e.target.value }}
+          onKeyDown={submitOnEnter}
+        />
+      ),
+      onOk: async () => {
+        if (!name.trim()) return
+        await window.api.sheet.create({ name: name.trim(), folderId })
+        message.success('题单已创建')
+        bumpDataVersion()
+        await refreshTree()
+        await loadData()
+      }
+    })
+  }
+
   const renameFolder = (id: number, currentName: string) => {
     let newName = ''
     Modal.confirm({
@@ -387,8 +372,30 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
     )
   }
 
+  const sortOptions: { key: 'name-asc' | 'name-desc' | 'time-asc' | 'time-desc' | 'manual'; label: string }[] = [
+    { key: 'name-asc', label: '按名称 A-Z' },
+    { key: 'name-desc', label: '按名称 Z-A' },
+    { key: 'time-asc', label: '按创建时间 旧→新' },
+    { key: 'time-desc', label: '按创建时间 新→旧' },
+  ]
+  const pageSortChildren = (type: 'folder' | 'sheet'): MenuProps['items'] => {
+    const items: MenuProps['items'] = sortOptions.map(o => ({ key: o.key, label: o.label, onClick: () => applySort(type, o.key) }))
+    items.push({ type: 'divider' })
+    items.push({ key: 'manual', label: '恢复拖拽顺序', onClick: () => applySort(type, 'manual') })
+    return items
+  }
+
+  const pageMenuItems: MenuProps['items'] = [
+    { key: 'new-folder', icon: <PlusOutlined />, label: '新建子文件夹', onClick: createFolder },
+    { key: 'new-sheet', icon: <OrderedListOutlined />, label: '新建题单', onClick: createSheet },
+    { type: 'divider' },
+    { key: 'sort-folders', icon: <FolderOutlined />, label: '排序子文件夹区域', children: pageSortChildren('folder') },
+    { key: 'sort-sheets', icon: <OrderedListOutlined />, label: '排序题单区域', children: pageSortChildren('sheet') },
+  ]
+
   return (
-    <div>
+    <Dropdown menu={{ items: pageMenuItems }} trigger={['contextMenu']}>
+      <div>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, float: 'right', marginTop: 4 }}>
         <Button size="small" icon={<SelectOutlined />} type={selectMode ? 'primary' : 'default'} onClick={() => { setSelectMode(v => !v); setSelectedFolderIds(new Set()); setSelectedSheetIds(new Set()) }}>选择</Button>
       </div>
@@ -433,34 +440,33 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                     },
                   ]
                   return (
-                    <SortableRow
-                      key={f.id}
-                      id={f.id}
-                      disabled={selectMode}
-                      isDark={isDark}
-                      checked={selectedFolderIds.has(f.id)}
-                      onCheckChange={v => setSelectedFolderIds(prev => { const n = new Set(prev); v ? n.add(f.id) : n.delete(f.id); return n })}
-                      onClick={() => { if (!selectMode) selectNode({ id: f.id, type: 'folder', name: f.name }) }}
-                      actions={
-                        <>
-                          <Tooltip title="重命名">
-                            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => renameFolder(f.id, f.name)} />
-                          </Tooltip>
-                          <Tooltip title="移动到...">
-                            <Button type="text" size="small" icon={<ArrowUpOutlined />} onClick={() => setMoveTarget({ type: 'folder', id: f.id, name: f.name, parentId: f.parent_id })} />
-                          </Tooltip>
-                          <Tooltip title="删除">
-                            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteFolder(f.id)} />
-                          </Tooltip>
-                        </>
-                      }
-                    >
-                      <Dropdown menu={{ items: folderMenuItems }} trigger={['contextMenu']}>
-                        <span style={{ cursor: 'context-menu' }}>
+                    <Dropdown key={f.id} menu={{ items: folderMenuItems }} trigger={['contextMenu']}>
+                      <div onContextMenu={e => e.stopPropagation()}>
+                        <SortableRow
+                          id={f.id}
+                          disabled={selectMode}
+                          isDark={isDark}
+                          checked={selectedFolderIds.has(f.id)}
+                          onCheckChange={v => setSelectedFolderIds(prev => { const n = new Set(prev); v ? n.add(f.id) : n.delete(f.id); return n })}
+                          onClick={() => { if (!selectMode) selectNode({ id: f.id, type: 'folder', name: f.name }) }}
+                          actions={
+                            <>
+                              <Tooltip title="重命名">
+                                <Button type="text" size="small" icon={<EditOutlined />} onClick={() => renameFolder(f.id, f.name)} />
+                              </Tooltip>
+                              <Tooltip title="移动到...">
+                                <Button type="text" size="small" icon={<ArrowUpOutlined />} onClick={() => setMoveTarget({ type: 'folder', id: f.id, name: f.name, parentId: f.parent_id })} />
+                              </Tooltip>
+                              <Tooltip title="删除">
+                                <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteFolder(f.id)} />
+                              </Tooltip>
+                            </>
+                          }
+                        >
                           <FolderOutlined /> {f.name}
-                        </span>
-                      </Dropdown>
-                    </SortableRow>
+                        </SortableRow>
+                      </div>
+                    </Dropdown>
                   )
                 })}
               </div>
@@ -498,34 +504,33 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
                     },
                   ]
                   return (
-                    <SortableRow
-                      key={s.id}
-                      id={s.id}
-                      disabled={selectMode}
-                      isDark={isDark}
-                      checked={selectedSheetIds.has(s.id)}
-                      onCheckChange={v => setSelectedSheetIds(prev => { const n = new Set(prev); v ? n.add(s.id) : n.delete(s.id); return n })}
-                      onClick={() => { if (!selectMode) selectNode({ id: s.id, type: 'sheet', name: s.name }) }}
-                      actions={
-                        <>
-                          <Tooltip title="重命名">
-                            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => renameSheet(s.id, s.name)} />
-                          </Tooltip>
-                          <Tooltip title="移动到...">
-                            <Button type="text" size="small" icon={<ArrowUpOutlined />} onClick={() => setMoveTarget({ type: 'sheet', id: s.id, name: s.name, parentId: s.folder_id })} />
-                          </Tooltip>
-                          <Tooltip title="删除">
-                            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteSheet(s.id)} />
-                          </Tooltip>
-                        </>
-                      }
-                    >
-                      <Dropdown menu={{ items: sheetMenuItems }} trigger={['contextMenu']}>
-                        <span style={{ cursor: 'context-menu' }}>
+                    <Dropdown key={s.id} menu={{ items: sheetMenuItems }} trigger={['contextMenu']}>
+                      <div onContextMenu={e => e.stopPropagation()}>
+                        <SortableRow
+                          id={s.id}
+                          disabled={selectMode}
+                          isDark={isDark}
+                          checked={selectedSheetIds.has(s.id)}
+                          onCheckChange={v => setSelectedSheetIds(prev => { const n = new Set(prev); v ? n.add(s.id) : n.delete(s.id); return n })}
+                          onClick={() => { if (!selectMode) selectNode({ id: s.id, type: 'sheet', name: s.name }) }}
+                          actions={
+                            <>
+                              <Tooltip title="重命名">
+                                <Button type="text" size="small" icon={<EditOutlined />} onClick={() => renameSheet(s.id, s.name)} />
+                              </Tooltip>
+                              <Tooltip title="移动到...">
+                                <Button type="text" size="small" icon={<ArrowUpOutlined />} onClick={() => setMoveTarget({ type: 'sheet', id: s.id, name: s.name, parentId: s.folder_id })} />
+                              </Tooltip>
+                              <Tooltip title="删除">
+                                <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteSheet(s.id)} />
+                              </Tooltip>
+                            </>
+                          }
+                        >
                           <OrderedListOutlined /> {s.name}
-                        </span>
-                      </Dropdown>
-                    </SortableRow>
+                        </SortableRow>
+                      </div>
+                    </Dropdown>
                   )
                 })}
               </div>
@@ -555,6 +560,7 @@ export default function FolderContent({ folderId }: Props): JSX.Element {
         onClose={() => setMoveTarget(null)}
         onConfirm={handleMoveConfirm}
       />
-    </div>
+      </div>
+    </Dropdown>
   )
 }

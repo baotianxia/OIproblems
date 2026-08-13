@@ -374,7 +374,7 @@ export function registerIpcHandlers(): void {
     const folders = db.prepare('SELECT id, name, description, parent_id, created_at FROM folders ORDER BY COALESCE(parent_id, 0), sort_order, id').all() as FolderRow[]
     const sheets = db.prepare('SELECT id, name, description, folder_id, created_at FROM sheets ORDER BY sort_order, id').all() as SheetRow[]
     const parts = db.prepare('SELECT * FROM parts ORDER BY sort_order, id').all() as PartRow[]
-    const problems = db.prepare('SELECT id, name, part_id, sheet_id, completed FROM problems ORDER BY sort_order, id').all() as ProblemRow[]
+    const problems = db.prepare('SELECT id, name, part_id, sheet_id, completed, created_at FROM problems ORDER BY sort_order, id').all() as ProblemRow[]
     return { folders, sheets, parts, problems }
   })
 

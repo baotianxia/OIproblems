@@ -103,7 +103,9 @@ interface ProblemItem {
   name: string
   part_id: number | null
   sheet_id: number | null
+  sort_order: number
   completed: number
+  created_at: string
 }
 
 interface SheetDetail {
